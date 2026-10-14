@@ -13,12 +13,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Supported models list with recommended default
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 SUPPORTED_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-flash-lite-latest",
+    "gemini-3.1-flash-lite",
     "gemini-2.5-flash",
-    "gemini-2.5-pro",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
 ]
 
 
@@ -95,6 +96,11 @@ def format_api_error(exc: Exception) -> str:
     err_str = str(exc)
     err_lower = err_str.lower()
 
+    if "503" in err_lower or "unavailable" in err_lower or "high demand" in err_lower:
+        return (
+            "⏳ **Model Temporarily Busy (HTTP 503)**: Google AI is currently experiencing high demand on this model. "
+            "Please switch to `gemini-3.5-flash-lite` in the sidebar or retry in a few seconds."
+        )
     if "resource_exhausted" in err_lower or "429" in err_lower or "quota" in err_lower:
         return (
             "⚠️ **API Quota Exceeded (HTTP 429)**: Your Gemini API key has temporarily reached its rate or quota limit. "
@@ -108,7 +114,7 @@ def format_api_error(exc: Exception) -> str:
     if "not_found" in err_lower or "404" in err_lower:
         return (
             "🔍 **Model Not Found (HTTP 404)**: The requested Gemini model ID is not accessible with this API key. "
-            "Try switching to `gemini-2.5-flash` or `gemini-1.5-flash` in settings."
+            "Try switching to `gemini-3.5-flash-lite` or `gemini-3.8-flash` in settings."
         )
     if "connection" in err_lower or "timeout" in err_lower or "name resolution" in err_lower:
         return (
@@ -116,6 +122,7 @@ def format_api_error(exc: Exception) -> str:
             "Please check your internet connection and proxy settings."
         )
     return f"❌ **Gemini API Error**: {err_str}"
+
 
 
 def verify_connectivity(client: Any, model: str) -> Tuple[bool, str, float]:

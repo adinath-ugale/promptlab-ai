@@ -26,7 +26,7 @@ def init_session_state() -> None:
         st.session_state.custom_api_key = ""
 
     if "selected_model" not in st.session_state:
-        st.session_state.selected_model = "gemini-2.5-flash"
+        st.session_state.selected_model = "gemini-3.8-flash"
 
     if "temperature" not in st.session_state:
         st.session_state.temperature = 0.7

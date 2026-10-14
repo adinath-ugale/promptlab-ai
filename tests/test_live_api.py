@@ -5,7 +5,7 @@ Skipped automatically in CI or unit test environments if no live key is present.
 
 import os
 import pytest
-from utils.gemini_client import get_api_key, get_gemini_client, verify_connectivity, DEFAULT_MODEL
+from utils.gemini_client import get_api_key, get_gemini_client, verify_connectivity, get_default_model
 
 LIVE_KEY = get_api_key()
 
@@ -15,6 +15,9 @@ def test_live_gemini_connectivity():
     """Verify live connectivity and latency against the real Google Gemini API."""
     client = get_gemini_client(LIVE_KEY)
     assert client is not None
-    is_ok, msg, lat = verify_connectivity(client, DEFAULT_MODEL)
-    assert is_ok is True
+    model = get_default_model()
+    is_ok, msg, lat = verify_connectivity(client, model)
+    assert is_ok is True, f"Ping failed: {msg}"
     assert lat > 0.0
+
+
