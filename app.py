@@ -119,7 +119,7 @@ st.markdown(
         {theme_vars}
     }}
 
-    html, body, [class*="st-"] {{
+    html, body, p, h1, h2, h3, h4, h5, h6, input, textarea, select, label {{
         font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
     }}
 
@@ -128,7 +128,61 @@ st.markdown(
         color: var(--text-primary);
     }}
 
-    /* Sidebar Styling */
+    /* =========================================================================
+       1. ROOT CAUSE FIX: Eliminate raw Material Symbols text like keyboard_double...
+       ========================================================================= */
+
+    /* Ensure Streamlit collapse button NEVER spills raw text ligatures */
+    [data-testid="stSidebarCollapseButton"] button {{
+        overflow: hidden !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 2.2rem !important;
+        height: 2.2rem !important;
+        border-radius: 8px !important;
+    }}
+    [data-testid="stSidebarCollapseButton"] button span {{
+        font-size: 0 !important;
+        line-height: 0 !important;
+        width: 20px !important;
+        height: 20px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: transparent !important;
+    }}
+    [data-testid="stSidebarCollapseButton"] button span::before {{
+        content: "«" !important;
+        font-size: 1.25rem !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        color: var(--text-secondary) !important;
+    }}
+
+    /* Collapsed sidebar open control */
+    [data-testid="stSidebarCollapsedControl"] button span {{
+        font-size: 0 !important;
+        line-height: 0 !important;
+        width: 20px !important;
+        height: 20px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: transparent !important;
+    }}
+    [data-testid="stSidebarCollapsedControl"] button span::before {{
+        content: "»" !important;
+        font-size: 1.25rem !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        color: var(--text-secondary) !important;
+    }}
+
+    /* =========================================================================
+       2. FIX OVERLAPPING HEADINGS & EXPANDER STYLING
+       ========================================================================= */
+
     section[data-testid="stSidebar"] {{
         background-color: var(--bg-sidebar) !important;
         border-right: 1px solid var(--border-subtle);
@@ -165,12 +219,102 @@ st.markdown(
         text-transform: uppercase;
     }}
 
-    /* Expandable Sidebar Sections */
-    .st-emotion-cache-p5msec, details {{
+    /* Expander details container */
+    section[data-testid="stSidebar"] details[data-testid="stExpander"] {{
         background-color: transparent !important;
         border: 1px solid var(--border-subtle) !important;
         border-radius: 10px !important;
-        margin-bottom: 0.6rem !important;
+        margin-bottom: 0.65rem !important;
+        overflow: hidden !important;
+        transition: border-color 0.2s ease, background 0.2s ease !important;
+    }}
+
+    section[data-testid="stSidebar"] details[data-testid="stExpander"]:hover {{
+        border-color: var(--border-purple) !important;
+        background-color: rgba(255, 255, 255, 0.02) !important;
+    }}
+
+    /* Summary header: Clean horizontal flex layout with zero overlapping */
+    section[data-testid="stSidebar"] details[data-testid="stExpander"] summary {{
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 0.65rem 0.85rem !important;
+        cursor: pointer !important;
+        outline: none !important;
+        list-style: none !important;
+        user-select: none !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }}
+
+    section[data-testid="stSidebar"] details[data-testid="stExpander"] summary::-webkit-details-marker {{
+        display: none !important;
+    }}
+
+    /* Label container on the left: exactly one icon followed by label */
+    section[data-testid="stSidebar"] details[data-testid="stExpander"] summary p,
+    section[data-testid="stSidebar"] details[data-testid="stExpander"] summary div:not([data-testid="stExpanderToggleIcon"]) {{
+        order: 1 !important;
+        font-size: 0.92rem !important;
+        font-weight: 600 !important;
+        color: var(--text-primary) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.6rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }}
+
+    /* Clean expander toggle arrow on the right, no raw text */
+    section[data-testid="stSidebar"] details[data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"] {{
+        order: 2 !important;
+        margin-left: auto !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        width: 18px !important;
+        height: 18px !important;
+        min-width: 18px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
+        color: transparent !important;
+    }}
+
+    section[data-testid="stSidebar"] details[data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"]::before {{
+        content: "▾" !important;
+        font-size: 0.85rem !important;
+        color: var(--text-secondary) !important;
+        display: inline-block !important;
+        line-height: 1 !important;
+    }}
+
+    section[data-testid="stSidebar"] details[data-testid="stExpander"]:not([open]) summary [data-testid="stExpanderToggleIcon"]::before {{
+        content: "▸" !important;
+    }}
+
+    /* Sub-buttons inside details */
+    section[data-testid="stSidebar"] details[data-testid="stExpander"] [data-testid="stExpanderDetails"] {{
+        padding: 0.45rem 0.5rem 0.65rem 0.5rem !important;
+        border-top: 1px solid var(--border-subtle) !important;
+    }}
+
+    section[data-testid="stSidebar"] details[data-testid="stExpander"] [data-testid="stExpanderDetails"] button {{
+        margin-bottom: 0.35rem !important;
+        border-radius: 8px !important;
+        font-size: 0.86rem !important;
+        font-weight: 500 !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        padding: 0.45rem 0.75rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }}
 
     /* Clean Centered New Chat Hero */
@@ -315,20 +459,20 @@ with st.sidebar:
     # SECTION 1: Prompt Engineering Lab (Expandable)
     # -----------------------------------------------------------------------
     exp_lab = st.expander(
-        "🔬 Prompt Engineering Lab",
+        "🔬  Prompt Engineering Lab",
         expanded=(st.session_state.active_view in ["chat", "summarization", "sentiment", "rqs"]),
     )
     with exp_lab:
-        if st.button("❓ Question Answering", use_container_width=True, key="nav_qa"):
+        if st.button("❓  Question Answering", use_container_width=True, key="nav_qa", type="primary" if st.session_state.active_view == "chat" else "secondary"):
             st.session_state.active_view = "chat"
             st.rerun()
-        if st.button("📝 Text Summarization", use_container_width=True, key="nav_sum"):
+        if st.button("📝  Text Summarization", use_container_width=True, key="nav_sum", type="primary" if st.session_state.active_view == "summarization" else "secondary"):
             st.session_state.active_view = "summarization"
             st.rerun()
-        if st.button("🎭 Sentiment Classification", use_container_width=True, key="nav_sent"):
+        if st.button("🎭  Sentiment Classification", use_container_width=True, key="nav_sent", type="primary" if st.session_state.active_view == "sentiment" else "secondary"):
             st.session_state.active_view = "sentiment"
             st.rerun()
-        if st.button("📊 Response Quality (RQS)", use_container_width=True, key="nav_rqs"):
+        if st.button("📊  Response Quality (RQS)", use_container_width=True, key="nav_rqs", type="primary" if st.session_state.active_view == "rqs" else "secondary"):
             st.session_state.active_view = "rqs"
             st.rerun()
 
@@ -336,17 +480,17 @@ with st.sidebar:
     # SECTION 2: Settings (Expandable)
     # -----------------------------------------------------------------------
     exp_settings = st.expander(
-        "⚙️ Settings",
+        "⚙️  Settings",
         expanded=(st.session_state.active_view in ["settings_api", "settings_model", "settings_theme"]),
     )
     with exp_settings:
-        if st.button("🔑 Gemini API Key", use_container_width=True, key="nav_set_api"):
+        if st.button("🔑  Gemini API Key", use_container_width=True, key="nav_set_api", type="primary" if st.session_state.active_view == "settings_api" else "secondary"):
             st.session_state.active_view = "settings_api"
             st.rerun()
-        if st.button("🎛️ Model Selection", use_container_width=True, key="nav_set_model"):
+        if st.button("🎛️  Model Selection", use_container_width=True, key="nav_set_model", type="primary" if st.session_state.active_view == "settings_model" else "secondary"):
             st.session_state.active_view = "settings_model"
             st.rerun()
-        if st.button("🎨 Theme Settings", use_container_width=True, key="nav_set_theme"):
+        if st.button("🎨  Theme Settings", use_container_width=True, key="nav_set_theme", type="primary" if st.session_state.active_view == "settings_theme" else "secondary"):
             st.session_state.active_view = "settings_theme"
             st.rerun()
 
@@ -354,19 +498,20 @@ with st.sidebar:
     # SECTION 3: Help & Viva (Expandable)
     # -----------------------------------------------------------------------
     exp_help = st.expander(
-        "📖 Help & Viva",
+        "📖  Help & Viva",
         expanded=(st.session_state.active_view in ["help_project", "help_how_to", "help_viva"]),
     )
     with exp_help:
-        if st.button("📌 Project Information", use_container_width=True, key="nav_help_proj"):
+        if st.button("📌  Project Information", use_container_width=True, key="nav_help_proj", type="primary" if st.session_state.active_view == "help_project" else "secondary"):
             st.session_state.active_view = "help_project"
             st.rerun()
-        if st.button("💡 How to Use Chatbot", use_container_width=True, key="nav_help_how"):
+        if st.button("💡  How to Use Chatbot", use_container_width=True, key="nav_help_how", type="primary" if st.session_state.active_view == "help_how_to" else "secondary"):
             st.session_state.active_view = "help_how_to"
             st.rerun()
-        if st.button("🎓 Viva Questions & Answers", use_container_width=True, key="nav_help_viva"):
+        if st.button("🎓  Viva Questions & Answers", use_container_width=True, key="nav_help_viva", type="primary" if st.session_state.active_view == "help_viva" else "secondary"):
             st.session_state.active_view = "help_viva"
             st.rerun()
+
 
 
 # ---------------------------------------------------------------------------
