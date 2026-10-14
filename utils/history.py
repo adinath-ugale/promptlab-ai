@@ -64,8 +64,12 @@ def init_session_state() -> None:
     if "active_nav" not in st.session_state:
         st.session_state.active_nav = "💬 Chat"
 
+    if "active_view" not in st.session_state:
+        st.session_state.active_view = "chat"
+
     if "prompt_strategy" not in st.session_state:
         st.session_state.prompt_strategy = "Zero-Shot"
+
 
 
 def add_chat_message(
