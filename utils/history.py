@@ -31,20 +31,45 @@ def init_session_state() -> None:
     if "temperature" not in st.session_state:
         st.session_state.temperature = 0.7
 
+    if "theme_mode" not in st.session_state:
+        st.session_state.theme_mode = "dark"
 
-def add_chat_message(role: str, content: str) -> None:
+    if "active_nav" not in st.session_state:
+        st.session_state.active_nav = "💬 AI Assistant"
+
+
+def add_chat_message(
+    role: str,
+    content: str,
+    latency: Optional[float] = None,
+    model: Optional[str] = None,
+) -> None:
     """Append a message to the active chat history in session state.
     
     Args:
         role: "user" or "assistant"
         content: message text
+        latency: optional execution time in milliseconds
+        model: optional model identifier
     """
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
-    st.session_state.chat_history.append({"role": role, "content": content})
+    from datetime import datetime
+    msg = {
+        "role": role,
+        "content": content,
+        "timestamp": datetime.now().strftime("%I:%M %p"),
+    }
+    if latency is not None:
+        msg["latency"] = latency
+    if model:
+        msg["model"] = model
+
+    st.session_state.chat_history.append(msg)
     if role == "user":
         st.session_state.queries_count = st.session_state.get("queries_count", 0) + 1
+
 
 
 def get_chat_history() -> List[Dict[str, str]]:
