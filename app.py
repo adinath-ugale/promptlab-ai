@@ -1,11 +1,12 @@
 """PromptLab AI — LLM Chatbot with Prompt Engineering.
 
-A modern, visually impressive Generative AI web application built for college NLP practical
-demonstration. Integrates the Google Gemini API (google-genai SDK), prompt engineering strategies,
-and the Response Quality Score (RQS) evaluation framework.
+Reference-Based Modern AI Studio Interface.
+Recreates the reference dark-navy aesthetic, ambient purple/violet glowing AI orb,
+3 horizontal suggestion cards, left dark sidebar with recent chats, and bottom rounded composer.
 """
 
 import time
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 
@@ -40,6 +41,7 @@ from utils.history import (
     add_chat_message,
     get_chat_history,
     clear_chat_history,
+    load_chat_thread,
     record_evaluation,
     get_evaluations,
     clear_evaluations,
@@ -51,7 +53,7 @@ from utils.history import (
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="PromptLab AI — LLM Chatbot with Prompt Engineering",
-    page_icon="🧪",
+    page_icon="⚛️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -60,59 +62,59 @@ st.set_page_config(
 init_session_state()
 
 # ---------------------------------------------------------------------------
-# Theme System & Dynamic CSS (Dark & Light)
+# Theme System & Dynamic CSS (Matching Reference UI: Navy, Violet, Cyan Glow)
 # ---------------------------------------------------------------------------
 is_dark = st.session_state.get("theme_mode", "dark") == "dark"
 
 if is_dark:
     theme_vars = """
-        --bg-canvas: #090D16;
-        --bg-canvas-subtle: #0F172A;
-        --bg-card: rgba(19, 28, 46, 0.75);
-        --bg-card-hover: rgba(28, 41, 65, 0.85);
-        --bg-elevated: #1E293B;
+        --bg-app: #080B12;
+        --bg-sidebar: #0B0E17;
+        --bg-main-panel: #0E1322;
+        --bg-card: rgba(18, 24, 41, 0.75);
+        --bg-card-hover: rgba(28, 38, 65, 0.9);
+        --bg-composer: #131A2D;
         --border-subtle: rgba(255, 255, 255, 0.08);
-        --border-hover: rgba(139, 92, 246, 0.4);
-        --border-glow: rgba(6, 182, 212, 0.35);
+        --border-purple: rgba(139, 92, 246, 0.3);
+        --border-purple-hover: rgba(168, 85, 247, 0.6);
         --text-primary: #F8FAFC;
         --text-secondary: #94A3B8;
         --text-muted: #64748B;
-        --accent-violet: #8B5CF6;
-        --accent-violet-glow: rgba(139, 92, 246, 0.25);
+        --accent-purple-gradient: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+        --accent-purple-hover: linear-gradient(135deg, #9333EA 0%, #7C3AED 100%);
         --accent-cyan: #06B6D4;
         --accent-emerald: #10B981;
         --accent-rose: #F43F5E;
         --accent-amber: #F59E0B;
-        --chat-user-bg: linear-gradient(135deg, #4338CA 0%, #6366F1 100%);
-        --chat-assistant-bg: rgba(19, 28, 46, 0.9);
-        --code-bg: #0F172A;
-        --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
-        --shadow-glow: 0 0 25px -5px rgba(139, 92, 246, 0.2);
+        --chat-user-bg: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+        --chat-assistant-bg: rgba(16, 22, 38, 0.85);
+        --shadow-glow-purple: 0 0 35px -5px rgba(139, 92, 246, 0.35);
+        --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
     """
 else:
     theme_vars = """
-        --bg-canvas: #F8FAFC;
-        --bg-canvas-subtle: #F1F5F9;
-        --bg-card: #FFFFFF;
-        --bg-card-hover: #F8FAFC;
-        --bg-elevated: #F1F5F9;
+        --bg-app: #F4F6FB;
+        --bg-sidebar: #FFFFFF;
+        --bg-main-panel: #FFFFFF;
+        --bg-card: #F8FAFC;
+        --bg-card-hover: #F1F5F9;
+        --bg-composer: #FFFFFF;
         --border-subtle: #E2E8F0;
-        --border-hover: rgba(124, 58, 237, 0.4);
-        --border-glow: rgba(8, 145, 178, 0.35);
+        --border-purple: rgba(124, 58, 237, 0.3);
+        --border-purple-hover: rgba(124, 58, 237, 0.7);
         --text-primary: #0F172A;
         --text-secondary: #475569;
         --text-muted: #94A3B8;
-        --accent-violet: #7C3AED;
-        --accent-violet-glow: rgba(124, 58, 237, 0.15);
+        --accent-purple-gradient: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+        --accent-purple-hover: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
         --accent-cyan: #0891B2;
         --accent-emerald: #059669;
         --accent-rose: #E11D48;
         --accent-amber: #D97706;
-        --chat-user-bg: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
-        --chat-assistant-bg: #FFFFFF;
-        --code-bg: #F1F5F9;
+        --chat-user-bg: linear-gradient(135deg, #6366F1 0%, #7C3AED 100%);
+        --chat-assistant-bg: #F8FAFC;
+        --shadow-glow-purple: 0 0 25px -5px rgba(124, 58, 237, 0.2);
         --shadow-card: 0 4px 15px -2px rgba(0, 0, 0, 0.08);
-        --shadow-glow: 0 0 20px -5px rgba(124, 58, 237, 0.15);
     """
 
 st.markdown(
@@ -122,109 +124,284 @@ st.markdown(
         {theme_vars}
     }}
 
-    /* Global reset and font styling */
     html, body, [class*="st-"] {{
         font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
     }}
 
     .stApp {{
-        background: var(--bg-canvas);
+        background: var(--bg-app);
         color: var(--text-primary);
     }}
 
-    /* Top Brand Hero Banner */
-    .brand-hero {{
+    /* Sidebar container customization */
+    section[data-testid="stSidebar"] {{
+        background-color: var(--bg-sidebar) !important;
+        border-right: 1px solid var(--border-subtle);
+    }}
+
+    /* Sidebar Logo Header */
+    .sidebar-header {{
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0.2rem 1.2rem 0.2rem;
+    }}
+    .sidebar-logo-orb {{
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--accent-purple-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+    }}
+    .sidebar-title {{
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        line-height: 1.2;
+    }}
+    .sidebar-sub {{
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }}
+
+    /* Custom + New Chat Button */
+    .btn-new-chat {{
+        display: block;
+        width: 100%;
+        padding: 0.7rem 1rem;
+        background: var(--accent-purple-gradient);
+        color: #FFFFFF !important;
+        font-weight: 700;
+        font-size: 0.92rem;
+        border-radius: 10px;
+        text-align: center;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 15px rgba(109, 40, 217, 0.4);
+        margin-bottom: 1.2rem;
+    }}
+    .btn-new-chat:hover {{
+        background: var(--accent-purple-hover);
+        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+        transform: translateY(-1px);
+    }}
+
+    /* Sidebar Recent Chat Links */
+    .recent-header {{
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        margin-bottom: 0.6rem;
+    }}
+    .recent-item {{
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.55rem 0.75rem;
+        border-radius: 8px;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        margin-bottom: 0.25rem;
+        border: 1px solid transparent;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+    }}
+    .recent-item:hover {{
+        background: var(--bg-card-hover);
+        color: var(--text-primary);
+        border-color: var(--border-purple);
+    }}
+    .recent-item-active {{
+        background: rgba(139, 92, 246, 0.15);
+        color: #A78BFA;
+        border-color: var(--border-purple);
+        font-weight: 600;
+    }}
+
+    /* Sidebar Bottom Profile */
+    .sidebar-footer {{
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.8rem 0.4rem;
+        border-top: 1px solid var(--border-subtle);
+        margin-top: 1.5rem;
+    }}
+    .footer-avatar {{
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--accent-purple-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        color: white;
+        font-weight: 700;
+    }}
+    .footer-user {{
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        line-height: 1.2;
+    }}
+    .footer-role {{
+        font-size: 0.72rem;
+        color: var(--text-muted);
+    }}
+
+    /* Main Chat Panel Container */
+    .main-chat-container {{
+        background: var(--bg-main-panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        padding: 1.2rem 1.6rem;
+        min-height: 85vh;
+        box-shadow: var(--shadow-card);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }}
+
+    /* Top Workspace Bar (Model selector & actions) */
+    .workspace-top-bar {{
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.8rem 1.4rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border-subtle);
-        border-radius: 14px;
+        padding-bottom: 0.8rem;
+        border-bottom: 1px solid var(--border-subtle);
         margin-bottom: 1.5rem;
-        box-shadow: var(--shadow-card);
     }}
-    .brand-hero-title {{
-        font-size: 1.4rem;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        background: linear-gradient(135deg, var(--accent-violet) 0%, var(--accent-cyan) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0;
-    }}
-    .brand-hero-sub {{
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-        margin: 0;
+    .model-pill {{
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.3rem 0.8rem;
+        background: rgba(139, 92, 246, 0.12);
+        border: 1px solid var(--border-purple);
+        border-radius: 9999px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #C4B5FD;
     }}
 
-    /* Modern Glassmorphic Cards */
-    .promptlab-card {{
+    /* Glowing AI Center Orb */
+    .orb-container {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 2rem 0 1.2rem 0;
+    }}
+    .glowing-orb {{
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #F472B6 0%, #A855F7 45%, #6366F1 80%, #312E81 100%);
+        box-shadow: 0 0 45px 10px rgba(168, 85, 247, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.6);
+        animation: orb-pulse 4s ease-in-out infinite;
+    }}
+    @keyframes orb-pulse {{
+        0%, 100% {{
+            transform: scale(1);
+            filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.5));
+        }}
+        50% {{
+            transform: scale(1.08);
+            filter: drop-shadow(0 0 40px rgba(236, 72, 153, 0.7));
+        }}
+    }}
+
+    /* Welcome Heading & Subtitle */
+    .welcome-title {{
+        text-align: center;
+        font-size: 2.1rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }}
+    .welcome-sub {{
+        text-align: center;
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        max-width: 620px;
+        margin: 0 auto 2.2rem auto;
+        line-height: 1.5;
+    }}
+
+    /* 3 Horizontal Suggestion Cards (Matching Reference) */
+    .suggestion-row {{
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.2rem;
+        margin-bottom: 2.5rem;
+    }}
+    .suggestion-card {{
         background: var(--bg-card);
         border: 1px solid var(--border-subtle);
         border-radius: 14px;
-        padding: 1.4rem;
-        margin-bottom: 1.2rem;
-        box-shadow: var(--shadow-card);
-        transition: all 0.25s ease;
-    }}
-    .promptlab-card:hover {{
-        border-color: var(--border-hover);
-        box-shadow: var(--shadow-glow);
-    }}
-
-    /* Interactive Starter Prompt Cards */
-    .starter-grid {{
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 1rem;
-        margin: 1.5rem 0;
-    }}
-    .starter-card {{
-        background: var(--bg-card);
-        border: 1px solid var(--border-subtle);
-        border-radius: 12px;
-        padding: 1.2rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
+        padding: 1.3rem;
         text-align: left;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        box-shadow: var(--shadow-card);
     }}
-    .starter-card:hover {{
-        transform: translateY(-2px);
-        border-color: var(--accent-violet);
+    .suggestion-card:hover {{
+        transform: translateY(-3px);
+        border-color: var(--border-purple-hover);
+        box-shadow: var(--shadow-glow-purple);
         background: var(--bg-card-hover);
-        box-shadow: var(--shadow-glow);
     }}
-    .starter-icon {{
-        font-size: 1.6rem;
-        margin-bottom: 0.6rem;
-        display: inline-block;
+    .card-icon-pill {{
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid var(--border-purple);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-bottom: 0.8rem;
     }}
-    .starter-title {{
-        font-size: 0.95rem;
+    .card-title {{
+        font-size: 1rem;
         font-weight: 700;
         color: var(--text-primary);
-        margin-bottom: 0.3rem;
+        margin-bottom: 0.35rem;
     }}
-    .starter-desc {{
+    .card-desc {{
         font-size: 0.82rem;
         color: var(--text-secondary);
-        line-height: 1.4;
+        line-height: 1.45;
     }}
 
-    /* Message Bubbles */
+    /* Chat Messages Styling */
     .chat-bubble-user {{
         background: var(--chat-user-bg);
         color: #FFFFFF;
-        padding: 0.9rem 1.2rem;
+        padding: 0.9rem 1.3rem;
         border-radius: 16px 16px 4px 16px;
         margin: 0.6rem 0;
-        max-width: 85%;
+        max-width: 80%;
         margin-left: auto;
-        box-shadow: 0 4px 15px -3px rgba(99, 102, 241, 0.35);
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
         font-size: 0.95rem;
-        line-height: 1.5;
+        line-height: 1.55;
     }}
     .chat-bubble-assistant {{
         background: var(--chat-assistant-bg);
@@ -233,145 +410,63 @@ st.markdown(
         padding: 1.2rem 1.4rem;
         border-radius: 16px 16px 16px 4px;
         margin: 0.6rem 0;
-        max-width: 95%;
+        max-width: 92%;
         box-shadow: var(--shadow-card);
         font-size: 0.95rem;
         line-height: 1.6;
     }}
-    .chat-meta {{
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        margin-top: 0.6rem;
-        font-size: 0.75rem;
-        color: var(--text-muted);
-    }}
 
-    /* Badges & Status Pills */
-    .badge-pill {{
+    /* Message Meta & Badges */
+    .meta-tag {{
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.4rem;
     }}
-    .badge-online {{
+
+    /* Badges */
+    .badge-positive {{
         background: rgba(16, 185, 129, 0.15);
         color: #34D399;
-        border: 1px solid rgba(16, 185, 129, 0.4);
-    }}
-    .badge-offline {{
-        background: rgba(244, 63, 94, 0.15);
-        color: #FB7185;
-        border: 1px solid rgba(244, 63, 94, 0.4);
-    }}
-    .badge-model {{
-        background: rgba(139, 92, 246, 0.15);
-        color: #A78BFA;
-        border: 1px solid rgba(139, 92, 246, 0.35);
-    }}
-    .badge-positive {{
-        background: rgba(16, 185, 129, 0.18);
-        color: #34D399;
         border: 1px solid #10B981;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.85rem;
     }}
     .badge-negative {{
-        background: rgba(244, 63, 94, 0.18);
+        background: rgba(244, 63, 94, 0.15);
         color: #FB7185;
         border: 1px solid #F43F5E;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.85rem;
     }}
     .badge-neutral {{
-        background: rgba(6, 182, 212, 0.18);
+        background: rgba(6, 182, 212, 0.15);
         color: #38BDF8;
         border: 1px solid #06B6D4;
-    }}
-
-    /* Metric Value Box */
-    .metric-box {{
-        background: var(--bg-card);
-        border: 1px solid var(--border-subtle);
-        border-radius: 12px;
-        padding: 1.1rem 1rem;
-        text-align: center;
-        transition: transform 0.2s ease;
-    }}
-    .metric-box:hover {{
-        transform: translateY(-2px);
-        border-color: var(--accent-violet);
-    }}
-    .metric-box-val {{
-        font-size: 1.9rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, var(--accent-violet) 0%, var(--accent-cyan) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        line-height: 1.2;
-    }}
-    .metric-box-label {{
-        font-size: 0.78rem;
+        padding: 4px 12px;
+        border-radius: 9999px;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--text-secondary);
-        margin-top: 0.35rem;
+        font-size: 0.85rem;
     }}
 
-    /* Formula Banner */
-    .formula-banner {{
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
-        border: 1px solid var(--accent-violet);
-        border-radius: 12px;
-        padding: 1rem 1.4rem;
-        margin: 1.2rem 0;
-    }}
-
-    /* Sidebar Logo & Branding */
-    .sidebar-brand {{
+    /* Strategy Toolbar */
+    .strategy-bar {{
         display: flex;
+        gap: 0.5rem;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.5rem 0.2rem 1rem 0.2rem;
-    }}
-    .sidebar-logo-icon {{
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, var(--accent-violet) 0%, var(--accent-cyan) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        box-shadow: var(--shadow-glow);
-    }}
-    .sidebar-title {{
-        font-size: 1.2rem;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        color: var(--text-primary);
-        line-height: 1.1;
-    }}
-    .sidebar-tagline {{
-        font-size: 0.72rem;
-        font-weight: 500;
-        color: var(--text-secondary);
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
+        margin-bottom: 0.6rem;
     }}
 
-    /* Code Container */
-    pre, code {{
-        border-radius: 8px !important;
-    }}
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {{
-        .brand-hero {{
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.6rem;
+    /* Responsive */
+    @media (max-width: 900px) {{
+        .suggestion-row {{
+            grid-template-columns: 1fr;
         }}
         .chat-bubble-user, .chat-bubble-assistant {{
             max-width: 100%;
@@ -383,114 +478,107 @@ st.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Sidebar: Branding, Navigation, Mode Toggle & API Controls
+# Sidebar: Logo, + New Chat, Recent Chats, Settings, Help & Profile
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    # 1. Branding Header
+    # 1. PromptLab AI Logo
     st.markdown(
         """
-        <div class="sidebar-brand">
-            <div class="sidebar-logo-icon">🧪</div>
+        <div class="sidebar-header">
+            <div class="sidebar-logo-orb">⚛️</div>
             <div>
                 <div class="sidebar-title">PromptLab AI</div>
-                <div class="sidebar-tagline">NLP Practical • LLM Studio</div>
+                <div class="sidebar-sub">LLM Prompt Studio</div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # 2. "New Chat" Quick Action Button
-    col_new_chat, col_theme = st.columns([2, 1])
-    with col_new_chat:
-        if st.button("✨ New Chat", use_container_width=True, type="primary"):
-            clear_chat_history()
-            st.rerun()
+    # 2. Prominent Purple Gradient + New Chat Button
+    if st.button("➕  New Chat", key="btn_sidebar_new_chat", use_container_width=True, type="primary"):
+        clear_chat_history()
+        st.session_state.active_nav = "💬 Chat"
+        st.rerun()
 
-    with col_theme:
-        current_theme = st.session_state.get("theme_mode", "dark")
-        new_theme_label = "☀️ Light" if current_theme == "dark" else "🌙 Dark"
-        if st.button(new_theme_label, use_container_width=True, help="Toggle Dark/Light theme"):
-            st.session_state.theme_mode = "light" if current_theme == "dark" else "dark"
-            st.rerun()
-
-    st.divider()
+    st.markdown("<div style='height: 0.6rem;'></div>", unsafe_allow_html=True)
 
     # 3. Main Navigation
-    st.markdown("##### 🧭 **WORKSPACE NAVIGATION**")
-    nav_selection = st.radio(
-        "Navigation:",
-        options=[
-            "💬 AI Assistant",
-            "🔬 Prompt Engineering Lab",
-            "❓ Question Answering",
-            "📝 Text Summarization",
-            "🎭 Sentiment Classification",
-            "📊 Quality Evaluation (RQS)",
-            "⚙️ Settings & System Health",
-            "📖 About & Viva Defense",
-        ],
-        index=0,
+    st.markdown('<div class="recent-header">Workspace</div>', unsafe_allow_html=True)
+    nav_tabs = [
+        "💬 Chat",
+        "🔬 Prompt Engineering Lab",
+        "❓ Question Answering",
+        "📝 Text Summarization",
+        "🎭 Sentiment Classification",
+        "📊 Response Quality (RQS)",
+    ]
+
+    selected_nav = st.radio(
+        "Workspace View:",
+        options=nav_tabs,
+        index=nav_tabs.index(st.session_state.get("active_nav", "💬 Chat")) if st.session_state.get("active_nav") in nav_tabs else 0,
         label_visibility="collapsed",
     )
+    if selected_nav != st.session_state.get("active_nav"):
+        st.session_state.active_nav = selected_nav
+        st.rerun()
 
     st.divider()
 
-    # 4. Live API Connectivity Badge
-    configured_key = get_api_key()
-    active_key = st.session_state.custom_api_key.strip() or configured_key
+    # 4. Recent Chats Section
+    st.markdown('<div class="recent-header">Recent Chats</div>', unsafe_allow_html=True)
+    recent_threads = st.session_state.get("recent_chats", [])
 
-    if active_key:
-        masked_key = f"...{active_key[-4:]}" if len(active_key) >= 4 else "configured"
-        st.markdown(
-            f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">API STATUS</span>
-                <span class="badge-pill badge-online">⚡ Connected</span>
-            </div>
-            <div style="font-size: 0.76rem; color: var(--text-muted); font-family: monospace;">Key: {masked_key}</div>
-            """,
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            """
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">API STATUS</span>
-                <span class="badge-pill badge-offline">⚠️ Missing Key</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    for thread in recent_threads[:4]:
+        t_title = thread.get("title", "Conversation")
+        t_id = thread.get("id", "")
+        is_active = t_id == st.session_state.get("active_chat_id")
+        active_cls = "recent-item-active" if is_active else ""
 
-    # 5. Session Metrics Mini-Card
-    stats = get_session_stats()
+        col_t, col_del = st.columns([5, 1])
+        with col_t:
+            if st.button(f"💬 {t_title}", key=f"thread_{t_id}", use_container_width=True):
+                load_chat_thread(t_id)
+                st.session_state.active_nav = "💬 Chat"
+                st.rerun()
+
+    st.divider()
+
+    # 5. Settings & Help Navigation
+    col_settings, col_about = st.columns(2)
+    with col_settings:
+        if st.button("⚙️ Settings", use_container_width=True):
+            st.session_state.active_nav = "⚙️ Settings"
+            st.rerun()
+    with col_about:
+        if st.button("📖 Help / Viva", use_container_width=True):
+            st.session_state.active_nav = "📖 Help / Viva"
+            st.rerun()
+
+    # Theme Toggle Switcher
+    col_th_lbl, col_th_btn = st.columns([2, 1])
+    with col_th_lbl:
+        st.caption(f"Theme: **{st.session_state.get('theme_mode', 'dark').capitalize()}**")
+    with col_th_btn:
+        toggle_label = "☀️" if is_dark else "🌙"
+        if st.button(toggle_label, help="Toggle Dark/Light theme"):
+            st.session_state.theme_mode = "light" if is_dark else "dark"
+            st.rerun()
+
+    # 6. Bottom Profile Section
     st.markdown(
-        f"""
-        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.8rem; margin: 0.8rem 0;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.3rem;">
-                <span style="color: var(--text-secondary);">Queries Executed:</span>
-                <span style="font-weight: 700; color: var(--text-primary);">{stats['queries_executed']}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.3rem;">
-                <span style="color: var(--text-secondary);">Active Model:</span>
-                <span style="font-weight: 600; color: var(--accent-cyan);">{st.session_state.selected_model}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.78rem;">
-                <span style="color: var(--text-secondary);">Mean RQS:</span>
-                <span style="font-weight: 700; color: #10B981;">{stats['average_rqs']}/5.0</span>
+        """
+        <div class="sidebar-footer">
+            <div class="footer-avatar">AI</div>
+            <div>
+                <div class="footer-user">Adinath • Student</div>
+                <div class="footer-role">NLP Practical Project</div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    if st.button("🧹 Reset Session", use_container_width=True, help="Clear message history and evaluation records"):
-        clear_chat_history()
-        clear_evaluations()
-        st.session_state.queries_count = 0
-        st.session_state.connection_status = None
-        st.rerun()
 
 
 # ---------------------------------------------------------------------------
@@ -502,165 +590,170 @@ def resolve_client():
     if not key:
         st.error(
             "🛑 **Gemini API Key Required**\n\n"
-            "Please configure your Google Gemini API key via:\n"
-            "1. **Settings & System Health** tab in the sidebar\n"
-            "2. Local `.env` file (`GEMINI_API_KEY=AIzaSy...`)\n"
-            "3. Streamlit Cloud Secrets for public deployment."
+            "Please configure your Google Gemini API key by clicking **⚙️ Settings** in the left sidebar, "
+            "or adding `GEMINI_API_KEY` to `.env`."
         )
         return None
     return get_gemini_client(key)
 
 
 # ===========================================================================
-# PAGE 1: 💬 AI ASSISTANT (Modern Conversational Workspace)
+# VIEW 1: 💬 MAIN CHAT WORKSPACE (Matching Reference Screenshot)
 # ===========================================================================
-if nav_selection == "💬 AI Assistant":
-    # Top Hero Card
-    st.markdown(
-        """
-        <div class="brand-hero">
-            <div>
-                <h1 class="brand-hero-title">💬 AI Conversational Assistant</h1>
-                <p class="brand-hero-sub">Multi-turn dialogue engine with role conditioning and prompt strategy steering.</p>
+if st.session_state.get("active_nav") == "💬 Chat":
+    # Top Workspace Bar: Model Selector on Left, Options on Right
+    top_col1, top_col2 = st.columns([3, 2])
+    with top_col1:
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span class="model-pill">✨ {st.session_state.selected_model}</span>
+                <span style="font-size: 0.78rem; color: var(--text-muted);">Temperature: {st.session_state.temperature}</span>
             </div>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <span class="badge-pill badge-model">Active: {}</span>
-            </div>
-        </div>
-        """.format(st.session_state.selected_model),
-        unsafe_allow_html=True,
-    )
-
-    # Persona & Controls Toolbar
-    tool_col1, tool_col2 = st.columns([3, 1])
-    with tool_col1:
-        persona = st.selectbox(
-            "Select Assistant Persona / System Role:",
-            options=[
-                "🎓 Senior NLP & AI Professor (Detailed, pedagogical, intuitive analogies)",
-                "💻 Principal Software Architect (Technical precision, algorithmic complexity)",
-                "⚡ Concise & Direct Helper (High-density, direct facts, zero fluff)",
-                "🧭 Socratic Inquirer (Guiding questions and hint-driven reasoning)",
-            ],
-            index=0,
-            help="Condition the foundation model with a specialized domain persona.",
+            """,
+            unsafe_allow_html=True,
         )
-    with tool_col2:
-        if st.button("🗑️ Clear Chat", use_container_width=True):
-            clear_chat_history()
-            st.rerun()
+    with top_col2:
+        top_act1, top_act2 = st.columns(2)
+        with top_act1:
+            if st.button("🔬 Open Lab", use_container_width=True):
+                st.session_state.active_nav = "🔬 Prompt Engineering Lab"
+                st.rerun()
+        with top_act2:
+            if st.button("🧹 Clear Chat", use_container_width=True):
+                clear_chat_history()
+                st.rerun()
 
-    persona_prompts = {
-        "🎓 Senior NLP & AI Professor (Detailed, pedagogical, intuitive analogies)": SYSTEM_INSTRUCTIONS[NLPTask.QUESTION_ANSWERING],
-        "💻 Principal Software Architect (Technical precision, algorithmic complexity)": (
-            "You are a Principal Software Architect. Give rigorous, production-grade technical advice, "
-            "highlighting scalability, edge cases, and algorithmic complexity."
-        ),
-        "⚡ Concise & Direct Helper (High-density, direct facts, zero fluff)": (
-            "You are a direct, concise academic assistant. Give high-density, accurate answers without fluff."
-        ),
-        "🧭 Socratic Inquirer (Guiding questions and hint-driven reasoning)": (
-            "You are a Socratic tutor. Help the user discover solutions by providing concise hints, "
-            "clarifying questions, and encouraging logical reasoning."
-        ),
-    }
-    active_sys_inst = persona_prompts[persona]
+    st.markdown("<hr style='border: none; border-top: 1px solid var(--border-subtle); margin: 0.4rem 0 1rem 0;'>", unsafe_allow_html=True)
 
-    # Empty State: Interactive Starter Prompt Cards
     chat_history = get_chat_history()
+
+    # Initial Screen: Animated AI Orb, Heading, Subtitle & 3 Horizontal Cards
     if not chat_history:
-        st.markdown("### 💡 **Explore Foundational NLP Concepts**")
-        st.caption("Click any starter topic below to immediately begin exploring:")
+        st.markdown(
+            """
+            <div class="orb-container">
+                <div class="glowing-orb"></div>
+            </div>
+            <div class="welcome-title">Welcome to PromptLab AI</div>
+            <div class="welcome-sub">
+                Your intelligent workspace for questions, writing, summarization, and prompt engineering.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        starter_col1, starter_col2 = st.columns(2)
-        with starter_col1:
+        # 3 Suggestion Cards in One Horizontal Row
+        card_col1, card_col2, card_col3 = st.columns(3)
+
+        with card_col1:
             if st.button(
-                "🧠 Transformer Self-Attention\n\nExplain how Query, Key, and Value projections compute scaled dot-product attention.",
-                key="starter_1",
+                "💬  Ask Anything\n\nGet clear, helpful answers to your questions.",
+                key="card_btn_qa",
                 use_container_width=True,
             ):
-                add_chat_message("user", "Explain how Query, Key, and Value projections compute scaled dot-product attention.")
+                add_chat_message("user", "Explain how the self-attention mechanism works in transformer models.")
                 st.rerun()
 
+        with card_col2:
             if st.button(
-                "🔬 Zero-Shot vs Few-Shot\n\nWhat are the theoretical and empirical differences between Zero-Shot and Few-Shot prompting?",
-                key="starter_2",
+                "📝  Summarize Text\n\nTurn long content into concise summaries.",
+                key="card_btn_sum",
                 use_container_width=True,
             ):
-                add_chat_message("user", "What are the theoretical and empirical differences between Zero-Shot and Few-Shot prompting?")
+                st.session_state.active_nav = "📝 Text Summarization"
                 st.rerun()
 
-        with starter_col2:
+        with card_col3:
             if st.button(
-                "⚖️ Hallucination Mitigation\n\nWhy do foundation models hallucinate and what prompt strategies reduce ungrounded answers?",
-                key="starter_3",
+                "🎭  Analyze Sentiment\n\nClassify text as positive, negative, or neutral.",
+                key="card_btn_sent",
                 use_container_width=True,
             ):
-                add_chat_message("user", "Why do foundation models hallucinate and what prompt strategies reduce ungrounded answers?")
+                st.session_state.active_nav = "🎭 Sentiment Classification"
                 st.rerun()
 
-            if st.button(
-                "🌡️ Temperature & Top-P Decoding\n\nHow do temperature and nucleus sampling alter the softmax probability distribution?",
-                key="starter_4",
-                use_container_width=True,
-            ):
-                add_chat_message("user", "How do temperature and nucleus sampling alter the softmax probability distribution during autoregressive generation?")
-                st.rerun()
+        st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
 
     # Active Conversation History Rendering
-    for msg in chat_history:
-        role = msg["role"]
-        content = msg["content"]
-        timestamp = msg.get("timestamp", "")
-        latency = msg.get("latency")
+    else:
+        for msg in chat_history:
+            role = msg["role"]
+            content = msg["content"]
+            timestamp = msg.get("timestamp", "")
+            latency = msg.get("latency")
 
-        if role == "user":
-            st.markdown(
-                f"""
-                <div class="chat-bubble-user">
-                    <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem; opacity: 0.85;">YOU</div>
-                    {content}
-                    <div class="chat-meta" style="color: rgba(255,255,255,0.7); justify-content: flex-end;">
-                        <span>{timestamp}</span>
+            if role == "user":
+                st.markdown(
+                    f"""
+                    <div class="chat-bubble-user">
+                        <div style="font-weight: 700; font-size: 0.78rem; opacity: 0.85; margin-bottom: 0.2rem;">YOU</div>
+                        {content}
+                        <div class="meta-tag" style="color: rgba(255,255,255,0.7); justify-content: flex-end;">
+                            <span>{timestamp}</span>
+                        </div>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        else:
-            lat_badge = f'<span class="badge-pill badge-model">⏱️ {latency} ms</span>' if latency else ""
-            st.markdown(
-                f"""
-                <div class="chat-bubble-assistant">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <span style="font-weight: 700; font-size: 0.82rem; color: var(--accent-violet);">PROMPTLAB AI</span>
-                        <div>{lat_badge}</div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                lat_str = f"⏱️ {latency} ms" if latency else ""
+                st.markdown(
+                    f"""
+                    <div class="chat-bubble-assistant">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 700; font-size: 0.82rem; color: #A78BFA;">PROMPTLAB AI</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">{lat_str}</span>
+                        </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.markdown(content)
+                st.markdown(
+                    f"""
+                        <div class="meta-tag">
+                            <span>Model: {st.session_state.selected_model}</span>
+                            <span>•</span>
+                            <span>{timestamp}</span>
+                        </div>
                     </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.markdown(content)
-            st.markdown(
-                f"""
-                    <div class="chat-meta">
-                        <span>Model: {st.session_state.selected_model}</span>
-                        <span>•</span>
-                        <span>{timestamp}</span>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                    """,
+                    unsafe_allow_html=True,
+                )
 
-    # Large Fixed Message Composer at bottom
-    user_query = st.chat_input("Ask a question, enter an NLP concept, or explore a prompt...")
-    if user_query:
-        add_chat_message("user", user_query)
+    # Strategy Selector Bar directly above composer
+    strat_col, persona_col = st.columns([1, 1])
+    with strat_col:
+        strat_choice = st.segmented_control(
+            "Prompt Strategy:",
+            options=["Zero-Shot", "Few-Shot", "Role Prompting", "Chain-of-Thought"],
+            default=st.session_state.get("prompt_strategy", "Zero-Shot"),
+            key="chat_strat_control",
+        )
+        if strat_choice:
+            st.session_state.prompt_strategy = strat_choice
+
+    with persona_col:
+        persona_choice = st.selectbox(
+            "Persona Grounding:",
+            options=[
+                "NLP & AI Professor (Pedagogical & grounded)",
+                "Principal Software Architect (System design & code)",
+                "Concise Assistant (Direct & factual)",
+            ],
+            index=0,
+            label_visibility="collapsed",
+        )
+
+    # Large Bottom Message Composer (Matching Reference)
+    user_msg = st.chat_input("Send a message or ask anything...")
+    if user_msg:
+        add_chat_message("user", user_msg)
         st.markdown(
             f"""
             <div class="chat-bubble-user">
-                <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 0.25rem; opacity: 0.85;">YOU</div>
-                {user_query}
+                <div style="font-weight: 700; font-size: 0.78rem; opacity: 0.85; margin-bottom: 0.2rem;">YOU</div>
+                {user_msg}
             </div>
             """,
             unsafe_allow_html=True,
@@ -668,13 +761,26 @@ if nav_selection == "💬 AI Assistant":
 
         client = resolve_client()
         if client:
-            with st.spinner("PromptLab AI is formulating response via Gemini..."):
+            strategy_enum_map = {
+                "Zero-Shot": PromptStrategy.ZERO_SHOT,
+                "Few-Shot": PromptStrategy.FEW_SHOT,
+                "Role Prompting": PromptStrategy.ROLE_PROMPT,
+                "Chain-of-Thought": PromptStrategy.CHAIN_OF_THOUGHT,
+            }
+            active_strat = strategy_enum_map.get(st.session_state.prompt_strategy, PromptStrategy.ZERO_SHOT)
+            sys_inst, formatted_p = build_prompt(
+                task=NLPTask.QUESTION_ANSWERING,
+                strategy=active_strat,
+                user_input=user_msg,
+            )
+
+            with st.spinner("PromptLab AI is thinking..."):
                 reply, err_msg, lat = generate_chat_response(
                     client=client,
                     history=get_chat_history(),
                     model=st.session_state.selected_model,
                     temperature=st.session_state.temperature,
-                    system_instruction=active_sys_inst,
+                    system_instruction=sys_inst,
                 )
 
             if err_msg:
@@ -685,34 +791,21 @@ if nav_selection == "💬 AI Assistant":
 
 
 # ===========================================================================
-# PAGE 2: 🔬 PROMPT ENGINEERING LAB (Interactive Comparison Workbench)
+# VIEW 2: 🔬 PROMPT ENGINEERING LAB (Side-by-side Strategy Benchmarking)
 # ===========================================================================
-elif nav_selection == "🔬 Prompt Engineering Lab":
-    st.markdown(
-        """
-        <div class="brand-hero">
-            <div>
-                <h1 class="brand-hero-title">🔬 Prompt Engineering Laboratory</h1>
-                <p class="brand-hero-sub">Experimentation workbench: Compare Zero-Shot, Few-Shot, Role Prompting, and CoT side-by-side.</p>
-            </div>
-            <span class="badge-pill badge-model">Methodology Benchmarking</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
+elif st.session_state.get("active_nav") == "🔬 Prompt Engineering Lab":
+    st.markdown("## 🔬 **Prompt Engineering Laboratory**")
+    st.caption("Benchmark Zero-Shot, Few-Shot, Role Prompting, and Chain-of-Thought on identical inputs.")
+
+    lab_task_str = st.selectbox(
+        "Select NLP Task:",
+        options=[t.value for t in NLPTask],
+        index=0,
     )
-
-    task_col, mode_col = st.columns([1, 1])
-    with task_col:
-        lab_task_str = st.selectbox(
-            "Select NLP Task for Experimentation:",
-            options=[t.value for t in NLPTask],
-            index=0,
-        )
-
     task_enum = NLPTask(lab_task_str)
 
     default_test_inputs = {
-        NLPTask.QUESTION_ANSWERING.value: "How does the self-attention mechanism differ from traditional recurrent hidden state propagation?",
+        NLPTask.QUESTION_ANSWERING.value: "How does the Scaled Dot-Product Attention compute similarity between queries and keys?",
         NLPTask.SUMMARIZATION.value: (
             "The Transformer model relies entirely on self-attention mechanisms to compute representations of its input and output without using sequence-aligned RNNs or convolution. "
             "In sequence transduction models, recurrent neural networks generate a sequence of hidden states as a function of the previous hidden state and the current input token. "
@@ -723,23 +816,21 @@ elif nav_selection == "🔬 Prompt Engineering Lab":
     }
 
     lab_input = st.text_area(
-        "Enter Input for Comparative Testing:",
+        "Test Input for Multi-Strategy Execution:",
         value=default_test_inputs[lab_task_str],
         height=120,
     )
 
-    # Strategy Selection Cards
-    st.markdown("##### 🎯 **Select Strategies to Execute Concurrently:**")
-    strat_col1, strat_col2, strat_col3, strat_col4 = st.columns(4)
-
-    with strat_col1:
-        run_zs = st.checkbox("Zero-Shot", value=True, help="Direct task instructions without exemplars.")
-    with strat_col2:
-        run_fs = st.checkbox("Few-Shot", value=True, help="Context injected with 2-3 structured demonstrations.")
-    with strat_col3:
-        run_rp = st.checkbox("Role Prompting", value=True, help="Conditioned with an authoritative persona.")
-    with strat_col4:
-        run_cot = st.checkbox("Chain-of-Thought", value=False, help="Explicit step-by-step reasoning anchors.")
+    st.markdown("##### 🎯 **Select Strategies to Benchmark:**")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        run_zs = st.checkbox("Zero-Shot", value=True)
+    with c2:
+        run_fs = st.checkbox("Few-Shot", value=True)
+    with c3:
+        run_rp = st.checkbox("Role Prompting", value=True)
+    with c4:
+        run_cot = st.checkbox("Chain-of-Thought", value=False)
 
     selected_strats = []
     if run_zs:
@@ -751,37 +842,25 @@ elif nav_selection == "🔬 Prompt Engineering Lab":
     if run_cot:
         selected_strats.append(PromptStrategy.CHAIN_OF_THOUGHT)
 
-    if st.button("⚡ Run Multi-Strategy Comparison", type="primary", use_container_width=True):
+    if st.button("⚡ Run Comparative Experiment", type="primary", use_container_width=True):
         is_valid, validation_err = validate_input_text(lab_input, min_length=3)
         if not is_valid:
             st.warning(validation_err)
         elif not selected_strats:
-            st.warning("Please select at least one prompting strategy to evaluate.")
+            st.warning("Please select at least one strategy.")
         else:
             client = resolve_client()
             if client:
                 res_cols = st.columns(len(selected_strats))
                 metrics_data = []
 
-                progress_bar = st.progress(0, text="Executing comparative prompts across Gemini...")
+                progress_bar = st.progress(0, text="Executing prompts across Gemini...")
                 for idx, strat in enumerate(selected_strats):
-                    sys_inst, user_prompt = build_prompt(
-                        task=task_enum,
-                        strategy=strat,
-                        user_input=lab_input,
-                    )
+                    sys_inst, user_prompt = build_prompt(task_enum, strat, lab_input)
 
                     with res_cols[idx]:
-                        st.markdown(
-                            f"""
-                            <div style="border-bottom: 2px solid var(--accent-violet); padding-bottom: 0.4rem; margin-bottom: 0.8rem;">
-                                <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">{strat.value}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-
-                        with st.spinner(f"Running {strat.value}..."):
+                        st.markdown(f"#### 🎯 **{strat.value}**")
+                        with st.spinner(f"Generating ({strat.value})..."):
                             reply, err_msg, lat = generate_single_response(
                                 client=client,
                                 prompt=user_prompt,
@@ -794,29 +873,22 @@ elif nav_selection == "🔬 Prompt Engineering Lab":
                             st.error(err_msg)
                         elif reply:
                             st.session_state.queries_count = st.session_state.get("queries_count", 0) + 1
-                            st.markdown(
-                                f"""
-                                <div style="display: flex; gap: 0.4rem; margin-bottom: 0.6rem;">
-                                    <span class="badge-pill badge-model">⏱️ {lat} ms</span>
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
+                            st.caption(f"⚡ Latency: **{lat} ms**")
+
+                            with st.expander("🔍 View Prompt Template"):
+                                st.markdown(format_prompt_for_display(sys_inst, user_prompt))
 
                             st.markdown(
                                 f"""
-                                <div class="promptlab-card" style="font-size: 0.9rem; line-height: 1.55;">
+                                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 1rem; margin-bottom: 0.8rem; font-size: 0.9rem;">
                                     {reply}
                                 </div>
                                 """,
                                 unsafe_allow_html=True,
                             )
 
-                            with st.expander("🔍 View Prompt Template Used"):
-                                st.markdown(format_prompt_for_display(sys_inst, user_prompt))
-
                             # Automated RQS scoring
-                            with st.spinner("Scoring RQS via LLM judge..."):
+                            with st.spinner("Scoring quality..."):
                                 eval_res, _ = evaluate_response_with_llm(
                                     client=client,
                                     model=st.session_state.selected_model,
@@ -828,15 +900,7 @@ elif nav_selection == "🔬 Prompt Engineering Lab":
 
                             if eval_res:
                                 record_evaluation(eval_res)
-                                st.markdown(
-                                    f"""
-                                    <div class="metric-box" style="margin-top: 0.5rem;">
-                                        <div class="metric-box-val">{eval_res.rqs_score}</div>
-                                        <div class="metric-box-label">RQS Score out of 5.0</div>
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True,
-                                )
+                                st.metric("RQS Score", f"{eval_res.rqs_score}/5.0")
                                 metrics_data.append(
                                     {
                                         "Strategy": strat.value,
@@ -853,64 +917,44 @@ elif nav_selection == "🔬 Prompt Engineering Lab":
 
                 if metrics_data:
                     st.divider()
-                    st.markdown("### 📊 **Empirical Comparison Summary**")
+                    st.markdown("### 📊 **Comparative Analysis Summary**")
                     comp_df = pd.DataFrame(metrics_data)
                     st.dataframe(comp_df, use_container_width=True)
 
                     c_col1, c_col2 = st.columns(2)
                     with c_col1:
-                        st.markdown("##### 🏆 Response Quality Score (RQS)")
+                        st.markdown("##### 🏆 RQS Score Comparison")
                         st.bar_chart(comp_df.set_index("Strategy")["RQS Score"])
                     with c_col2:
-                        st.markdown("##### ⏱️ Execution Latency (ms)")
+                        st.markdown("##### ⏱️ Latency Comparison (ms)")
                         st.bar_chart(comp_df.set_index("Strategy")["Latency (ms)"])
 
 
 # ===========================================================================
-# PAGE 3: ❓ QUESTION ANSWERING (Task 1)
+# VIEW 3: ❓ QUESTION ANSWERING TOOL (Task 1)
 # ===========================================================================
-elif nav_selection == "❓ Question Answering":
-    st.markdown(
-        """
-        <div class="brand-hero">
-            <div>
-                <h1 class="brand-hero-title">❓ Question Answering Engine</h1>
-                <p class="brand-hero-sub">Pedagogical explanations with hallucination avoidance and uncertainty grounding.</p>
-            </div>
-            <span class="badge-pill badge-model">NLP Task 1</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+elif st.session_state.get("active_nav") == "❓ Question Answering":
+    st.markdown("## ❓ **Question Answering Engine**")
+    st.caption("Technical and pedagogical explanations with uncertainty acknowledgment.")
 
     q_col1, q_col2 = st.columns([1, 1])
     with q_col1:
-        qa_strat = st.selectbox(
-            "Select Prompt Strategy:",
-            options=[s.value for s in PromptStrategy],
-            index=2,  # Role Prompting default
-        )
+        qa_strat = st.selectbox("Prompt Strategy:", [s.value for s in PromptStrategy], index=2)
     with q_col2:
         preset_q = st.selectbox(
-            "Load Benchmark NLP Question:",
+            "Load Sample NLP Question:",
             options=[
                 "-- Custom Question --",
-                "How does the Scaled Dot-Product Attention compute similarity between queries and keys?",
-                "What is the mathematical definition of Tokenization and why is it essential?",
+                "What is Self-Attention and how does it compute query, key, and value vectors?",
+                "How does Temperature affect LLM decoding probability distributions?",
                 "Explain the difference between Extractive and Abstractive text summarization.",
-                "How does temperature scaling modify softmax output probabilities?",
             ],
         )
 
     initial_q = preset_q if preset_q != "-- Custom Question --" else ""
-    user_q = st.text_area(
-        "Enter Technical or Educational Question:",
-        value=initial_q,
-        height=100,
-        placeholder="e.g. How does Word2Vec continuous bag of words work?",
-    )
+    user_q = st.text_area("Enter Technical Question:", value=initial_q, height=100)
 
-    if st.button("🚀 Generate Grounded Answer", type="primary"):
+    if st.button("🚀 Generate Answer", type="primary"):
         is_valid, validation_err = validate_input_text(user_q, min_length=3)
         if not is_valid:
             st.warning(validation_err)
@@ -923,7 +967,7 @@ elif nav_selection == "❓ Question Answering":
                     user_input=user_q,
                 )
 
-                with st.spinner("PromptLab AI is synthesizing answer..."):
+                with st.spinner("Synthesizing answer..."):
                     reply, err_msg, lat = generate_single_response(
                         client=client,
                         prompt=user_prompt,
@@ -936,26 +980,15 @@ elif nav_selection == "❓ Question Answering":
                     st.error(err_msg)
                 elif reply:
                     st.session_state.queries_count = st.session_state.get("queries_count", 0) + 1
-                    st.markdown(
-                        f"""
-                        <div class="promptlab-card">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-                                <span style="font-weight: 700; color: var(--accent-violet);">Synthesized Response</span>
-                                <span class="badge-pill badge-model">⏱️ {lat} ms</span>
-                            </div>
-                            <div style="font-size: 0.95rem; line-height: 1.6;">
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    st.success(f"Generated ({lat} ms)")
+                    st.markdown("### 💡 **Answer**")
                     st.markdown(reply)
-                    st.markdown("</div></div>", unsafe_allow_html=True)
 
-                    with st.expander("🔍 View Prompt Template Used"):
+                    with st.expander("🔍 View Prompt Template"):
                         st.markdown(format_prompt_for_display(sys_inst, user_prompt))
 
                     st.divider()
-                    st.markdown("#### ⚖️ **Evaluate Quality of this Response**")
-                    if st.button("Evaluate Response with RQS Evaluator", key="eval_qa_single"):
+                    if st.button("Evaluate with RQS", key="eval_qa_btn"):
                         with st.spinner("Scoring quality via LLM judge..."):
                             eval_res, eval_err = evaluate_response_with_llm(
                                 client=client,
@@ -969,46 +1002,26 @@ elif nav_selection == "❓ Question Answering":
                             st.error(eval_err)
                         elif eval_res:
                             record_evaluation(eval_res)
-                            st.success(f"**Calculated RQS Score: {eval_res.rqs_score} / 5.0**")
-                            c1, c2, c3, c4 = st.columns(4)
-                            c1.metric("Accuracy", f"{eval_res.accuracy}/5.0")
-                            c2.metric("Relevance", f"{eval_res.relevance}/5.0")
-                            c3.metric("Consistency", f"{eval_res.consistency}/5.0")
-                            c4.metric("Fluency", f"{eval_res.fluency}/5.0")
+                            st.success(f"**RQS Score: {eval_res.rqs_score} / 5.0**")
+                            q1, q2, q3, q4 = st.columns(4)
+                            q1.metric("Accuracy", f"{eval_res.accuracy}/5")
+                            q2.metric("Relevance", f"{eval_res.relevance}/5")
+                            q3.metric("Consistency", f"{eval_res.consistency}/5")
+                            q4.metric("Fluency", f"{eval_res.fluency}/5")
 
 
 # ===========================================================================
-# PAGE 4: 📝 TEXT SUMMARIZATION (Task 2)
+# VIEW 4: 📝 TEXT SUMMARIZATION (Task 2)
 # ===========================================================================
-elif nav_selection == "📝 Text Summarization":
-    st.markdown(
-        """
-        <div class="brand-hero">
-            <div>
-                <h1 class="brand-hero-title">📝 Text Summarization Engine</h1>
-                <p class="brand-hero-sub">Factual condensation with configurable length modes and zero external hallucination.</p>
-            </div>
-            <span class="badge-pill badge-model">NLP Task 2</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+elif st.session_state.get("active_nav") == "📝 Text Summarization":
+    st.markdown("## 📝 **Text Summarization Engine**")
+    st.caption("Factual condensation across Short, Medium, and Detailed modes.")
 
-    col_len, col_strat = st.columns(2)
-    with col_len:
-        len_mode = st.radio(
-            "Summary Target Length:",
-            options=["Short", "Medium", "Detailed"],
-            index=1,
-            horizontal=True,
-            help="Short: 1-2 sentences. Medium: 3-5 bullet points. Detailed: Executive synthesis.",
-        )
-    with col_strat:
-        sum_strat = st.selectbox(
-            "Prompting Strategy:",
-            options=[s.value for s in PromptStrategy],
-            index=2,
-        )
+    len_col, strat_col = st.columns(2)
+    with len_col:
+        len_mode = st.radio("Target Length:", ["Short", "Medium", "Detailed"], index=1, horizontal=True)
+    with strat_col:
+        sum_strat = st.selectbox("Prompt Strategy:", [s.value for s in PromptStrategy], index=2)
 
     sample_1 = (
         "The Attention mechanism in deep learning was introduced to address the information bottleneck in Sequence-to-Sequence models. "
@@ -1017,34 +1030,8 @@ elif nav_selection == "📝 Text Summarization":
         "In 2017, the Transformer architecture entirely replaced recurrent layers with Self-Attention, computing Query, Key, and Value projections. "
         "This allowed massive parallelization during training and enabled foundational LLMs like BERT, GPT, and Gemini."
     )
-    sample_2 = (
-        "Prompt engineering has emerged as a disciplined paradigm for steering foundation models without weight fine-tuning. "
-        "Techniques span Zero-Shot (direct task specification), Few-Shot (demonstrating exemplars in context), "
-        "Role Prompting (conditioning model tone and expertise via persona), and Chain-of-Thought (soliciting intermediate reasoning steps). "
-        "Empirical research demonstrates that well-structured prompt instructions reduce hallucinations and improve domain accuracy significantly."
-    )
 
-    if "sum_input_val" not in st.session_state:
-        st.session_state.sum_input_val = sample_1
-
-    s_col1, s_col2 = st.columns(2)
-    with s_col1:
-        if st.button("📄 Load Transformer Architecture Note", use_container_width=True):
-            st.session_state.sum_input_val = sample_1
-            st.rerun()
-    with s_col2:
-        if st.button("📄 Load Prompt Engineering Note", use_container_width=True):
-            st.session_state.sum_input_val = sample_2
-            st.rerun()
-
-    sum_input = st.text_area(
-        "Paste Article or Notes to Summarize:",
-        value=st.session_state.sum_input_val,
-        height=150,
-    )
-
-    words_in = len(sum_input.split())
-    st.caption(f"📊 Input: {words_in} words | {len(sum_input)} characters")
+    sum_input = st.text_area("Paste Article or Text to Summarize:", value=sample_1, height=140)
 
     if st.button("✨ Generate Summary", type="primary"):
         is_valid, validation_err = validate_input_text(sum_input, min_length=20, max_length=15000)
@@ -1060,12 +1047,12 @@ elif nav_selection == "📝 Text Summarization":
                     extra_params={"length_mode": len_mode},
                 )
 
-                with st.spinner("Synthesizing factual summary..."):
+                with st.spinner("Synthesizing summary..."):
                     summary, err_msg, lat = generate_single_response(
                         client=client,
                         prompt=user_prompt,
                         model=st.session_state.selected_model,
-                        temperature=0.3,  # Low temperature for factual fidelity
+                        temperature=0.3,
                         system_instruction=sys_inst,
                     )
 
@@ -1073,32 +1060,16 @@ elif nav_selection == "📝 Text Summarization":
                     st.error(err_msg)
                 elif summary:
                     st.session_state.queries_count = st.session_state.get("queries_count", 0) + 1
-                    words_out = len(summary.split())
-                    compression = round((1 - (words_out / max(words_in, 1))) * 100, 1)
-
-                    st.markdown(
-                        f"""
-                        <div class="promptlab-card">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-                                <span style="font-weight: 700; color: var(--accent-violet);">Executive Summary ({len_mode})</span>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <span class="badge-pill badge-positive">Compressed by {compression}%</span>
-                                    <span class="badge-pill badge-model">⏱️ {lat} ms</span>
-                                </div>
-                            </div>
-                            <div style="font-size: 0.95rem; line-height: 1.6;">
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    st.success(f"Generated ({lat} ms)")
+                    st.markdown("### 📋 **Summary**")
                     st.markdown(summary)
-                    st.markdown("</div></div>", unsafe_allow_html=True)
 
-                    with st.expander("🔍 View Prompt Template Used"):
+                    with st.expander("🔍 View Prompt Template"):
                         st.markdown(format_prompt_for_display(sys_inst, user_prompt))
 
                     st.divider()
-                    if st.button("Evaluate Summary with RQS", key="eval_sum_single"):
-                        with st.spinner("Scoring summary quality via LLM judge..."):
+                    if st.button("Evaluate Summary with RQS", key="eval_sum_btn"):
+                        with st.spinner("Evaluating quality..."):
                             eval_res, eval_err = evaluate_response_with_llm(
                                 client=client,
                                 model=st.session_state.selected_model,
@@ -1107,45 +1078,28 @@ elif nav_selection == "📝 Text Summarization":
                                 input_text=sum_input,
                                 generated_response=summary,
                             )
-                        if eval_err:
-                            st.error(eval_err)
-                        elif eval_res:
+                        if eval_res:
                             record_evaluation(eval_res)
                             st.success(f"**RQS Score: {eval_res.rqs_score} / 5.0**")
-                            c1, c2, c3, c4 = st.columns(4)
-                            c1.metric("Accuracy", f"{eval_res.accuracy}/5.0")
-                            c2.metric("Relevance", f"{eval_res.relevance}/5.0")
-                            c3.metric("Consistency", f"{eval_res.consistency}/5.0")
-                            c4.metric("Fluency", f"{eval_res.fluency}/5.0")
+                            q1, q2, q3, q4 = st.columns(4)
+                            q1.metric("Accuracy", f"{eval_res.accuracy}/5")
+                            q2.metric("Relevance", f"{eval_res.relevance}/5")
+                            q3.metric("Consistency", f"{eval_res.consistency}/5")
+                            q4.metric("Fluency", f"{eval_res.fluency}/5")
 
 
 # ===========================================================================
-# PAGE 5: 🎭 SENTIMENT CLASSIFICATION (Task 3)
+# VIEW 5: 🎭 SENTIMENT CLASSIFICATION (Task 3)
 # ===========================================================================
-elif nav_selection == "🎭 Sentiment Classification":
-    st.markdown(
-        """
-        <div class="brand-hero">
-            <div>
-                <h1 class="brand-hero-title">🎭 Sentiment Classification Engine</h1>
-                <p class="brand-hero-sub">Deterministic LLM polarity categorization into Positive, Negative, or Neutral with linguistic rationale.</p>
-            </div>
-            <span class="badge-pill badge-model">NLP Task 3</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+elif st.session_state.get("active_nav") == "🎭 Sentiment Classification":
+    st.markdown("## 🎭 **Sentiment Classification Engine**")
+    st.caption("Deterministic categorization into Positive, Negative, or Neutral with linguistic rationale.")
 
     strat_col, _ = st.columns([1, 1])
     with strat_col:
-        sent_strat = st.selectbox(
-            "Prompting Strategy:",
-            options=[s.value for s in PromptStrategy],
-            index=1,  # Few-shot default for stability
-        )
+        sent_strat = st.selectbox("Prompt Strategy:", [s.value for s in PromptStrategy], index=1)
 
-    # Required College Benchmarks
-    st.markdown("##### 🧪 **Required College Practical Benchmark Cases (Click to Test):**")
+    st.markdown("##### 🧪 **College Practical Benchmark Cases (Click to Test):**")
     t1, t2, t3 = st.columns(3)
     if "sent_input_val" not in st.session_state:
         st.session_state.sent_input_val = "This phone has excellent battery life."
@@ -1163,11 +1117,7 @@ elif nav_selection == "🎭 Sentiment Classification":
             st.session_state.sent_input_val = "The package arrived yesterday."
             st.rerun()
 
-    sent_input = st.text_input(
-        "Text to Classify:",
-        value=st.session_state.sent_input_val,
-        placeholder="Enter a review, statement, or tweet...",
-    )
+    sent_input = st.text_input("Text to Classify:", value=st.session_state.sent_input_val)
 
     if st.button("🎯 Classify Polarity", type="primary"):
         is_valid, validation_err = validate_input_text(sent_input, min_length=2)
@@ -1182,12 +1132,12 @@ elif nav_selection == "🎭 Sentiment Classification":
                     user_input=sent_input,
                 )
 
-                with st.spinner("Analyzing semantic valence via Gemini..."):
+                with st.spinner("Analyzing polarity..."):
                     prediction, err_msg, lat = generate_single_response(
                         client=client,
                         prompt=user_prompt,
                         model=st.session_state.selected_model,
-                        temperature=0.0,  # Zero temperature for deterministic classification
+                        temperature=0.0,
                         system_instruction=sys_inst,
                     )
 
@@ -1198,32 +1148,23 @@ elif nav_selection == "🎭 Sentiment Classification":
 
                     pred_upper = prediction.upper()
                     if "POSITIVE" in pred_upper:
-                        badge_html = '<span class="badge-pill badge-positive" style="font-size: 1rem; padding: 0.4rem 1.2rem;">🟢 POSITIVE</span>'
+                        badge_html = '<span class="badge-positive">🟢 POSITIVE</span>'
                     elif "NEGATIVE" in pred_upper:
-                        badge_html = '<span class="badge-pill badge-negative" style="font-size: 1rem; padding: 0.4rem 1.2rem;">🔴 NEGATIVE</span>'
+                        badge_html = '<span class="badge-negative">🔴 NEGATIVE</span>'
                     else:
-                        badge_html = '<span class="badge-pill badge-neutral" style="font-size: 1rem; padding: 0.4rem 1.2rem;">🔵 NEUTRAL</span>'
+                        badge_html = '<span class="badge-neutral">🔵 NEUTRAL</span>'
 
-                    st.markdown(
-                        f"""
-                        <div class="promptlab-card" style="margin-top: 1rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                <div>{badge_html}</div>
-                                <span class="badge-pill badge-model">⏱️ {lat} ms</span>
-                            </div>
-                            <div style="font-size: 0.95rem; line-height: 1.6;">
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    st.markdown("### 🏷️ **Result**")
+                    st.markdown(f"{badge_html} &nbsp; <span style='font-size: 0.8rem; color: var(--text-muted);'>⏱️ {lat} ms</span>", unsafe_allow_html=True)
+                    st.markdown("#### **Linguistic Explanation:**")
                     st.markdown(prediction)
-                    st.markdown("</div></div>", unsafe_allow_html=True)
 
-                    with st.expander("🔍 View Prompt Template Used"):
+                    with st.expander("🔍 View Prompt Template"):
                         st.markdown(format_prompt_for_display(sys_inst, user_prompt))
 
                     st.divider()
-                    if st.button("Evaluate Classification with RQS", key="eval_sent_single"):
-                        with st.spinner("Scoring classification quality via LLM judge..."):
+                    if st.button("Evaluate with RQS", key="eval_sent_btn"):
+                        with st.spinner("Scoring quality..."):
                             eval_res, eval_err = evaluate_response_with_llm(
                                 client=client,
                                 model=st.session_state.selected_model,
@@ -1232,47 +1173,32 @@ elif nav_selection == "🎭 Sentiment Classification":
                                 input_text=sent_input,
                                 generated_response=prediction,
                             )
-                        if eval_err:
-                            st.error(eval_err)
-                        elif eval_res:
+                        if eval_res:
                             record_evaluation(eval_res)
-                            st.success(f"**Calculated RQS Score: {eval_res.rqs_score} / 5.0**")
-                            c1, c2, c3, c4 = st.columns(4)
-                            c1.metric("Accuracy", f"{eval_res.accuracy}/5.0")
-                            c2.metric("Relevance", f"{eval_res.relevance}/5.0")
-                            c3.metric("Consistency", f"{eval_res.consistency}/5.0")
-                            c4.metric("Fluency", f"{eval_res.fluency}/5.0")
+                            st.success(f"**RQS Score: {eval_res.rqs_score} / 5.0**")
+                            q1, q2, q3, q4 = st.columns(4)
+                            q1.metric("Accuracy", f"{eval_res.accuracy}/5")
+                            q2.metric("Relevance", f"{eval_res.relevance}/5")
+                            q3.metric("Consistency", f"{eval_res.consistency}/5")
+                            q4.metric("Fluency", f"{eval_res.fluency}/5")
 
 
 # ===========================================================================
-# PAGE 6: 📊 QUALITY EVALUATION (RQS Dashboard & CSV Export)
+# VIEW 6: 📊 RESPONSE QUALITY (RQS Dashboard & CSV Export)
 # ===========================================================================
-elif nav_selection == "📊 Quality Evaluation (RQS)":
-    st.markdown(
-        """
-        <div class="brand-hero">
-            <div>
-                <h1 class="brand-hero-title">📊 Response Quality Evaluation (RQS)</h1>
-                <p class="brand-hero-sub">Mathematical framework quantifying Accuracy, Relevance, Consistency, and Fluency.</p>
-            </div>
-            <span class="badge-pill badge-model">Mathematical Framework</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+elif st.session_state.get("active_nav") == "📊 Response Quality (RQS)":
+    st.markdown("## 📊 **Response Quality Evaluation Dashboard (RQS)**")
 
-    # Mathematical Formula Banner
+    # Formula Display
     st.markdown(
         """
-        <div class="formula-banner">
-            <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-violet); text-transform: uppercase; margin-bottom: 0.4rem;">
-                MATHEMATICAL FORMULATION
-            </div>
-            <div style="font-size: 1.15rem; font-weight: 600;">
+        <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid var(--border-purple); border-radius: 12px; padding: 1.2rem; margin: 1rem 0;">
+            <div style="font-weight: 700; color: #A78BFA; font-size: 0.85rem; text-transform: uppercase;">Mathematical Formulation</div>
+            <div style="font-size: 1.2rem; font-weight: 700; margin: 0.4rem 0;">
                 $$\\text{RQS} = \\frac{\\text{Accuracy} + \\text{Relevance} + \\text{Consistency} + \\text{Fluency}}{4}$$
             </div>
-            <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.4rem;">
-                Where each dimension is evaluated on an interval $[1.0, 5.0]$, yielding $\\text{RQS} \\in [1.0, 5.0]$.
+            <div style="font-size: 0.82rem; color: var(--text-secondary);">
+                Normalized interval scale: $\\text{RQS} \\in [1.0, 5.0]$.
             </div>
         </div>
         """,
@@ -1281,52 +1207,28 @@ elif nav_selection == "📊 Quality Evaluation (RQS)":
 
     eval_logs = get_evaluations()
 
-    # Aggregate Metrics Cards
     if eval_logs:
         df_logs = records_to_dataframe(eval_logs)
         m1, m2, m3, m4, m5 = st.columns(5)
-        with m1:
-            st.markdown(
-                f'<div class="metric-box"><div class="metric-box-val">{len(eval_logs)}</div><div class="metric-box-label">Evaluations</div></div>',
-                unsafe_allow_html=True,
-            )
-        with m2:
-            st.markdown(
-                f'<div class="metric-box"><div class="metric-box-val">{round(df_logs["RQS Score"].mean(), 2)}</div><div class="metric-box-label">Mean RQS</div></div>',
-                unsafe_allow_html=True,
-            )
-        with m3:
-            st.markdown(
-                f'<div class="metric-box"><div class="metric-box-val">{round(df_logs["Accuracy"].mean(), 2)}</div><div class="metric-box-label">Accuracy</div></div>',
-                unsafe_allow_html=True,
-            )
-        with m4:
-            st.markdown(
-                f'<div class="metric-box"><div class="metric-box-val">{round(df_logs["Relevance"].mean(), 2)}</div><div class="metric-box-label">Relevance</div></div>',
-                unsafe_allow_html=True,
-            )
-        with m5:
-            st.markdown(
-                f'<div class="metric-box"><div class="metric-box-val">{round(df_logs["Consistency"].mean(), 2)}</div><div class="metric-box-label">Consistency</div></div>',
-                unsafe_allow_html=True,
-            )
+        m1.metric("Evaluations", len(eval_logs))
+        m2.metric("Mean RQS", f"{round(df_logs['RQS Score'].mean(), 2)} / 5.0")
+        m3.metric("Accuracy", f"{round(df_logs['Accuracy'].mean(), 2)} / 5.0")
+        m4.metric("Relevance", f"{round(df_logs['Relevance'].mean(), 2)} / 5.0")
+        m5.metric("Consistency", f"{round(df_logs['Consistency'].mean(), 2)} / 5.0")
     else:
         st.info("ℹ️ No evaluations recorded yet. Run queries in Chat, QA, Summarization, or use the standalone evaluator below.")
 
     st.divider()
 
-    # Standalone Response Evaluator Tool
+    # Standalone Evaluator
     st.markdown("### 🧪 **Standalone Response Evaluator**")
-    st.caption("Benchmark any arbitrary Input-Response pair against the 4 RQS dimensions using an LLM-as-a-judge.")
-
     with st.expander("Open Standalone Evaluator", expanded=not bool(eval_logs)):
-        st_task = st.selectbox("Task Category:", [t.value for t in NLPTask], key="standalone_task")
-        st_strat = st.selectbox("Strategy Applied:", [s.value for s in PromptStrategy], key="standalone_strat")
-        st_inp = st.text_area("User Input Text:", key="standalone_inp", height=70)
-        st_out = st.text_area("AI Response to Evaluate:", key="standalone_out", height=100)
-        st_ref = st.text_area("Ground Truth / Benchmark Reference (Optional):", key="standalone_ref", height=60)
+        st_task = st.selectbox("Task Category:", [t.value for t in NLPTask], key="st_eval_task")
+        st_strat = st.selectbox("Strategy Applied:", [s.value for s in PromptStrategy], key="st_eval_strat")
+        st_inp = st.text_area("User Input Text:", key="st_eval_inp", height=70)
+        st_out = st.text_area("AI Response to Evaluate:", key="st_eval_out", height=90)
 
-        if st.button("⚖️ Run LLM Judge Evaluation", type="primary"):
+        if st.button("⚖️ Run Evaluator Judgment", type="primary"):
             if not st_inp.strip() or not st_out.strip():
                 st.warning("Please provide both User Input and Generated Response.")
             else:
@@ -1340,13 +1242,12 @@ elif nav_selection == "📊 Quality Evaluation (RQS)":
                             strategy=st_strat,
                             input_text=st_inp,
                             generated_response=st_out,
-                            reference_answer=st_ref,
                         )
                     if eval_err:
                         st.error(eval_err)
                     elif eval_res:
                         record_evaluation(eval_res)
-                        st.success(f"**Calculated RQS Score: {eval_res.rqs_score} / 5.0**")
+                        st.success(f"**RQS Score: {eval_res.rqs_score} / 5.0**")
                         c1, c2, c3, c4 = st.columns(4)
                         c1.metric("Accuracy", f"{eval_res.accuracy}/5.0")
                         c2.metric("Relevance", f"{eval_res.relevance}/5.0")
@@ -1354,9 +1255,8 @@ elif nav_selection == "📊 Quality Evaluation (RQS)":
                         c4.metric("Fluency", f"{eval_res.fluency}/5.0")
                         st.rerun()
 
-    # Evaluation Records Table & CSV Download
     if eval_logs:
-        st.markdown("### 📋 **Evaluation Records History**")
+        st.markdown("### 📋 **Evaluation History Records**")
         df_display = records_to_dataframe(eval_logs)
         st.dataframe(df_display, use_container_width=True)
 
@@ -1375,44 +1275,21 @@ elif nav_selection == "📊 Quality Evaluation (RQS)":
                 clear_evaluations()
                 st.rerun()
 
-    st.markdown("---")
-    st.markdown(
-        """
-        > **⚠️ Academic Evaluation Methodology Note:**
-        > - **LLM-as-a-Judge**: Evaluator scores are heuristic estimates computed by an LLM and should not be treated as absolute ground truth.
-        > - **Consistency Testing**: Rigorous consistency assessment requires multi-sample variance testing across diverse temperatures.
-        """
-    )
-
 
 # ===========================================================================
-# PAGE 7: ⚙️ SETTINGS & SYSTEM HEALTH (Configuration & Ping)
+# VIEW 7: ⚙️ SETTINGS (API Key, Model, Temperature, Diagnostics)
 # ===========================================================================
-elif nav_selection == "⚙️ Settings & System Health":
-    st.markdown(
-        """
-        <div class="brand-hero">
-            <div>
-                <h1 class="brand-hero-title">⚙️ Settings & System Health</h1>
-                <p class="brand-hero-sub">Gemini API credentials, model parameters, and real-time connectivity testing.</p>
-            </div>
-            <span class="badge-pill badge-model">System Control</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+elif st.session_state.get("active_nav") == "⚙️ Settings":
+    st.markdown("## ⚙️ **Settings & System Health**")
 
-    settings_card1, settings_card2 = st.columns(2)
-
-    with settings_card1:
+    c_key, c_model = st.columns(2)
+    with c_key:
         st.markdown("### 🔑 **API Key Configuration**")
-        st.caption("Stored securely in session memory. Never exposed in HTML or committed to Git.")
-
         custom_key_val = st.text_input(
             "Gemini API Key:",
             type="password",
             value=st.session_state.custom_api_key,
-            help="Override GEMINI_API_KEY from .env or secrets.",
+            help="Masked input stored in session memory.",
         )
         if custom_key_val != st.session_state.custom_api_key:
             st.session_state.custom_api_key = custom_key_val
@@ -1423,8 +1300,6 @@ elif nav_selection == "⚙️ Settings & System Health":
         if configured_k:
             masked = f"...{configured_k[-4:]}" if len(configured_k) >= 4 else "configured"
             st.success(f"Active Key Configured: `{masked}`")
-        else:
-            st.warning("No API Key detected. Please enter key above.")
 
         st.markdown("### 🔌 **Connectivity Diagnostic**")
         if st.button("Test Gemini Connection", use_container_width=True, type="primary"):
@@ -1432,198 +1307,68 @@ elif nav_selection == "⚙️ Settings & System Health":
                 active_k = custom_key_val.strip() or configured_k
                 client = get_gemini_client(active_k)
                 is_ok, msg, lat = verify_connectivity(client, st.session_state.selected_model)
-                st.session_state.connection_status = {
-                    "is_ok": is_ok,
-                    "msg": msg,
-                    "lat": lat,
-                }
+                st.session_state.connection_status = {"is_ok": is_ok, "msg": msg, "lat": lat}
 
         if st.session_state.connection_status:
             stat = st.session_state.connection_status
             if stat["is_ok"]:
-                st.markdown(
-                    f"""
-                    <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; border-radius: 10px; padding: 1rem; margin-top: 0.8rem;">
-                        <div style="font-weight: 700; color: #34D399;">🟢 Connection Verified Successfully</div>
-                        <div style="font-size: 0.85rem; color: var(--text-primary); margin-top: 0.3rem;">{stat['msg']}</div>
-                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.3rem;">Latency: <b>{stat['lat']} ms</b></div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                st.success(f"🟢 **Connected** ({stat['lat']} ms)\n\n{stat['msg']}")
             else:
-                st.markdown(
-                    f"""
-                    <div style="background: rgba(244, 63, 94, 0.15); border: 1px solid #F43F5E; border-radius: 10px; padding: 1rem; margin-top: 0.8rem;">
-                        <div style="font-weight: 700; color: #FB7185;">🔴 Connection Failed</div>
-                        <div style="font-size: 0.85rem; color: var(--text-primary); margin-top: 0.3rem;">{stat['msg']}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                st.error(f"🔴 **Connection Failed**\n\n{stat['msg']}")
 
-    with settings_card2:
+    with c_model:
         st.markdown("### 🎛️ **Model & Decoding Parameters**")
-
-        current_model = st.session_state.selected_model
-        model_idx = SUPPORTED_MODELS.index(current_model) if current_model in SUPPORTED_MODELS else 0
         new_model = st.selectbox(
             "Gemini Model ID:",
             options=SUPPORTED_MODELS,
-            index=model_idx,
-            help="Select an active Gemini model with verified availability.",
+            index=SUPPORTED_MODELS.index(st.session_state.selected_model) if st.session_state.selected_model in SUPPORTED_MODELS else 0,
         )
         if new_model != st.session_state.selected_model:
             st.session_state.selected_model = new_model
             st.rerun()
 
-        st.markdown(
-            """
-            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                • <b>gemini-3.5-flash-lite</b>: Recommended default (ultra-fast, highly reliable)<br>
-                • <b>gemini-3.8-flash</b>: Next-generation reasoning foundation model
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        new_temp = st.slider(
-            "Sampling Temperature:",
-            min_value=0.0,
-            max_value=1.0,
-            value=st.session_state.temperature,
-            step=0.05,
-            help="0.0 = Deterministic & focused; 1.0 = Diverse & creative.",
-        )
+        new_temp = st.slider("Temperature:", 0.0, 1.0, float(st.session_state.temperature), 0.05)
         if new_temp != st.session_state.temperature:
             st.session_state.temperature = new_temp
 
-        st.caption(
-            "Tip: Use T=0.0 for Sentiment Classification and fact-based QA; use T=0.7 for creative exploration."
-        )
-
 
 # ===========================================================================
-# PAGE 8: 📖 ABOUT & VIVA DEFENSE (Academic Report & Viva Guide)
+# VIEW 8: 📖 HELP / VIVA (Academic Documentation)
 # ===========================================================================
-elif nav_selection == "📖 About & Viva Defense":
-    st.markdown(
-        """
-        <div class="brand-hero">
-            <div>
-                <h1 class="brand-hero-title">📖 Academic Report & Viva Defense</h1>
-                <p class="brand-hero-sub">Complete college practical report, mathematical proofs, architecture, and viva defense.</p>
-            </div>
-            <span class="badge-pill badge-model">College Practical Defense</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+elif st.session_state.get("active_nav") == "📖 Help / Viva":
+    st.markdown("## 📖 **Academic Report & Viva Defense Guide**")
+    t1, t2, t3 = st.tabs(["📌 Project Overview", "🧠 NLP Theory & Math", "🎓 Viva Defense Q&A"])
 
-    tab_doc1, tab_doc2, tab_doc3, tab_doc4 = st.tabs(
-        ["📌 Project Overview", "🧠 NLP Theory & Math", "🏗️ System Architecture", "🎓 Viva Defense Q&A"]
-    )
-
-    with tab_doc1:
+    with t1:
         st.markdown(
             """
             ### 🎯 Project Title:
             **PromptLab AI — Chatbot using LLM with Prompt Engineering**
-
-            #### 1. Aim
-            To build and benchmark an interactive Natural Language Processing web application that leverages Large Language Models 
-            via formal prompt engineering strategies (**Zero-Shot**, **Few-Shot**, **Role Prompting**, and **Chain-of-Thought**) 
-            and evaluates output fidelity through a rigorous mathematical model (**Response Quality Score — RQS**).
-
-            #### 2. Key Objectives
-            - **Real Generative AI Integration**: Live connection to Google's official Gemini API (`google-genai` SDK).
-            - **Core NLP Tasks**: Practical implementation of Question Answering, Text Summarization, and Sentiment Classification.
-            - **Prompt Engineering Paradigms**: Side-by-side comparative laboratory evaluating performance across strategies.
-            - **Mathematical RQS Model**: Quantifying Accuracy, Relevance, Consistency, and Fluency.
-            - **Cloud Deployment Ready**: Ready for Streamlit Community Cloud hosting with zero secret leakage.
+            - **Author:** Adinath (NLP Student Researcher)
+            - **Platform:** Streamlit & Google Gemini API (`google-genai` SDK)
+            - **Core Tasks:** Question Answering, Text Summarization, Sentiment Classification
+            - **Quality Model:** Response Quality Score (RQS)
             """
         )
-
-    with tab_doc2:
+    with t2:
         st.markdown(
             """
-            ### 🧠 Theory of LLMs and Prompt Engineering
-
-            #### 1. Large Language Models (LLMs)
-            Modern LLMs are autoregressive deep neural networks based on the **Transformer architecture** (Vaswani et al., 2017). 
-            They model conditional probabilities across text sequences:
-            $$P(w_1, w_2, \\dots, w_T) = \\prod_{t=1}^T P(w_t \\mid w_1, \\dots, w_{t-1})$$
-
-            #### 2. In-Context Learning & Prompt Engineering
-            Unlike fine-tuning which modifies neural network weights via backpropagation, prompt engineering exploits 
-            *in-context learning* (Brown et al., 2020) to steer foundation models at inference time with zero parameter updates.
-
-            #### 3. Mathematical Model: Response Quality Score (RQS)
+            ### 🧠 Theory & Mathematical Formulation
             $$\\text{RQS} = \\frac{\\text{Accuracy} + \\text{Relevance} + \\text{Consistency} + \\text{Fluency}}{4}$$
-            Where each dimension is evaluated on an interval $[1.0, 5.0]$:
-            - **Accuracy (A)**: Factual correctness and absence of hallucinations.
-            - **Relevance (R)**: Pertinence to user query without drift.
-            - **Consistency (C)**: Internal logical coherence and non-contradiction across claims.
-            - **Fluency (F)**: Grammatical syntax, clarity, and readability.
+            - **Accuracy**: Truthfulness and absence of hallucination.
+            - **Relevance**: Direct alignment with user query.
+            - **Consistency**: Internal logical cohesion across claims.
+            - **Fluency**: Grammatical precision and syntax.
             """
         )
-
-    with tab_doc3:
+    with t3:
         st.markdown(
             """
-            ### 🏗️ System Architecture & Workflow
-
-            ```mermaid
-            flowchart TD
-                User([👤 User / Student]) -->|Interacts via Browser| StreamlitApp[🖥️ Streamlit Frontend app.py]
-                
-                subgraph CoreModules [Application Core]
-                    StreamlitApp --> Chat[💬 AI Assistant]
-                    StreamlitApp --> Lab[🔬 Prompt Engineering Lab]
-                    StreamlitApp --> QA[❓ Question Answering]
-                    StreamlitApp --> Sum[📝 Text Summarization]
-                    StreamlitApp --> Sent[🎭 Sentiment Classification]
-                    StreamlitApp --> Eval[📊 RQS Quality Dashboard]
-                end
-
-                subgraph LogicEngine [Prompt & API Engine]
-                    CoreModules --> Prompts[utils/prompts.py\nTemplate & Strategy Router]
-                    Prompts --> Client[utils/gemini_client.py\nOfficial google-genai Client]
-                    Client --> GeminiAPI[☁️ Google Gemini API\ngemini-3.5-flash-lite]
-                    GeminiAPI --> Client
-                end
-
-                subgraph EvaluationEngine [Quality Benchmark]
-                    Client --> Evaluator[utils/evaluation.py\nLLM Judge Engine]
-                    Evaluator --> RQS[Compute RQS Formula]
-                    RQS --> State[(utils/history.py\nSession State & Pandas)]
-                    State --> CSV[CSV Export]
-                end
-
-                State -.->|Live Metrics| StreamlitApp
-            ```
-            """
-        )
-
-    with tab_doc4:
-        st.markdown(
-            """
-            ### 🎓 College Viva & Defense Preparation Guide
-
-            **Q1: Why did you choose Prompt Engineering instead of Fine-Tuning?**  
-            *Answer:* Fine-tuning alters neural weights, requiring high computational resources (GPUs), domain-specific labeled training sets, and carries the risk of catastrophic forgetting. Prompt engineering leverages in-context learning in pretrained foundation models, enabling instant adaptation with zero weight modifications.
-
-            **Q2: What is the difference between Zero-Shot and Few-Shot prompting?**  
-            *Answer:* Zero-Shot provides only the task instructions. Few-Shot supplies 2–3 exemplar demonstrations directly inside the prompt context. This activates pattern matching in the self-attention mechanism, dramatically improving formatting compliance and classification stability.
-
-            **Q3: How does the Temperature parameter affect generation?**  
-            *Answer:* Temperature scales the logits before the softmax operation ($P(w_i) \\propto \\exp(z_i / T)$). At $T=0.0$, the model performs deterministic greedy decoding (ideal for classification). At higher temperatures ($T=0.7 - 1.0$), token diversity increases.
-
-            **Q4: How did you compute RQS?**  
-            *Answer:* RQS stands for Response Quality Score, computed as the arithmetic mean of four normalized dimensions: Accuracy, Relevance, Consistency, and Fluency on an interval scale of $1.0$ to $5.0$.
-
-            **Q5: How are credentials secured?**  
-            *Answer:* API keys are never hardcoded in source code or committed to Git. Locally, `.env` is managed with `python-dotenv` and protected by `.gitignore`. For cloud deployment, Streamlit Cloud Secrets are utilized.
+            ### 🎓 Key Viva Questions
+            - **Q: Why prompt engineering over fine-tuning?**  
+              *A:* Fine-tuning modifies neural network weights, requiring high computational resources and domain training sets. Prompt engineering steers foundation models via in-context learning with zero weight modification.
+            - **Q: How does few-shot prompting work?**  
+              *A:* Supplying 2-3 input-output examples directly in the prompt context activates pattern recognition in the self-attention mechanism, standardizing format and output labels.
             """
         )
 
@@ -1631,6 +1376,4 @@ elif nav_selection == "📖 About & Viva Defense":
 # Footer
 # ---------------------------------------------------------------------------
 st.markdown("---")
-st.caption(
-    "🔬 **PromptLab AI** — NLP Practical Project | Built with Python, Streamlit, and Google Gemini API."
-)
+st.caption("⚛️ **PromptLab AI** — NLP Practical Project | Developed with Python, Streamlit, and Google Gemini API.")

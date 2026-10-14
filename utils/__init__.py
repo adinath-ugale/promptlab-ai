@@ -30,6 +30,7 @@ from .history import (
     init_session_state,
     add_chat_message,
     clear_chat_history,
+    load_chat_thread,
     get_chat_history,
     record_evaluation,
     clear_evaluations,
@@ -60,8 +61,10 @@ __all__ = [
     "init_session_state",
     "add_chat_message",
     "clear_chat_history",
+    "load_chat_thread",
     "get_chat_history",
     "record_evaluation",
     "clear_evaluations",
     "get_session_stats",
 ]
+

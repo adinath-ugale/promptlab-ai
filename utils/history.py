@@ -1,10 +1,11 @@
 """PromptLab AI - Session History and State Management Module.
 
-Manages conversational message history, evaluation logs, and session metrics in Streamlit
-session state. Ensures privacy by strictly excluding credentials or sensitive tokens from state.
+Manages conversational message history, recent chat threads, evaluation logs, and session metrics
+in Streamlit session state. Ensures privacy by strictly excluding credentials or sensitive tokens.
 """
 
 from typing import List, Dict, Any, Optional
+from datetime import datetime
 import streamlit as st
 
 
@@ -12,6 +13,32 @@ def init_session_state() -> None:
     """Initialize default keys in Streamlit session state if not already set."""
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+
+    if "recent_chats" not in st.session_state:
+        # Initial starter chat threads for elegant visual presentation
+        st.session_state.recent_chats = [
+            {
+                "id": "starter_1",
+                "title": "Transformer Attention Mechanics",
+                "preview": "Explain Scaled Dot-Product Attention...",
+                "messages": [],
+            },
+            {
+                "id": "starter_2",
+                "title": "Sentiment Polarity Analysis",
+                "preview": "Classify text into Positive/Negative...",
+                "messages": [],
+            },
+            {
+                "id": "starter_3",
+                "title": "Zero vs Few-Shot Prompting",
+                "preview": "In-context learning benchmarks...",
+                "messages": [],
+            },
+        ]
+
+    if "active_chat_id" not in st.session_state:
+        st.session_state.active_chat_id = "current"
 
     if "evaluation_logs" not in st.session_state:
         st.session_state.evaluation_logs = []
@@ -26,7 +53,7 @@ def init_session_state() -> None:
         st.session_state.custom_api_key = ""
 
     if "selected_model" not in st.session_state:
-        st.session_state.selected_model = "gemini-3.8-flash"
+        st.session_state.selected_model = "gemini-3.5-flash-lite"
 
     if "temperature" not in st.session_state:
         st.session_state.temperature = 0.7
@@ -35,7 +62,10 @@ def init_session_state() -> None:
         st.session_state.theme_mode = "dark"
 
     if "active_nav" not in st.session_state:
-        st.session_state.active_nav = "💬 AI Assistant"
+        st.session_state.active_nav = "💬 Chat"
+
+    if "prompt_strategy" not in st.session_state:
+        st.session_state.prompt_strategy = "Zero-Shot"
 
 
 def add_chat_message(
@@ -55,7 +85,6 @@ def add_chat_message(
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
-    from datetime import datetime
     msg = {
         "role": role,
         "content": content,
@@ -67,9 +96,34 @@ def add_chat_message(
         msg["model"] = model
 
     st.session_state.chat_history.append(msg)
+
+    # If first user message, update recent chat title
     if role == "user":
         st.session_state.queries_count = st.session_state.get("queries_count", 0) + 1
+        title = content.strip().replace("\n", " ")
+        if len(title) > 30:
+            title = title[:27] + "..."
 
+        # Update or add to recent chats
+        current_id = st.session_state.get("active_chat_id", "current")
+        updated = False
+        if "recent_chats" in st.session_state:
+            for item in st.session_state.recent_chats:
+                if item["id"] == current_id:
+                    item["title"] = title
+                    item["messages"] = list(st.session_state.chat_history)
+                    updated = True
+                    break
+            if not updated:
+                st.session_state.recent_chats.insert(
+                    0,
+                    {
+                        "id": current_id,
+                        "title": title,
+                        "preview": content[:40],
+                        "messages": list(st.session_state.chat_history),
+                    },
+                )
 
 
 def get_chat_history() -> List[Dict[str, str]]:
@@ -80,6 +134,17 @@ def get_chat_history() -> List[Dict[str, str]]:
 def clear_chat_history() -> None:
     """Reset the chat history for the active session."""
     st.session_state.chat_history = []
+    st.session_state.active_chat_id = f"chat_{int(datetime.now().timestamp())}"
+
+
+def load_chat_thread(thread_id: str) -> None:
+    """Load a specific chat thread from recent_chats into active chat_history."""
+    if "recent_chats" in st.session_state:
+        for t in st.session_state.recent_chats:
+            if t["id"] == thread_id:
+                st.session_state.active_chat_id = thread_id
+                st.session_state.chat_history = list(t.get("messages", []))
+                break
 
 
 def record_evaluation(result: Any) -> None:
