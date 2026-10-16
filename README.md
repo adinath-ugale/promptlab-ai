@@ -7,7 +7,7 @@
 
 > **College NLP Practical Project**  
 > **Title:** *Chatbot using LLM with Prompt Engineering*  
-> **Developed by:** Senior Generative AI / NLP Student  
+> **Developed by:** Adinath Ugale (Project Creator & Developer)  
 > **Target Platform:** Streamlit Community Cloud & Local Windows / macOS / Linux  
 
 ---

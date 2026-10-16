@@ -157,6 +157,17 @@ def verify_connectivity(client: Any, model: str) -> Tuple[bool, str, float]:
         return False, format_api_error(exc), round(latency, 1)
 
 
+def ensure_identity_instruction(system_instruction: Optional[str]) -> str:
+    """Ensure the immutable owner identity instruction is included in every Gemini API call."""
+    from .identity import get_identity_system_instruction, OWNER_NAME
+    identity_inst = get_identity_system_instruction()
+    if not system_instruction:
+        return identity_inst
+    if OWNER_NAME in system_instruction:
+        return system_instruction
+    return f"{system_instruction}\n\n{identity_inst}"
+
+
 def generate_single_response(
     client: Any,
     prompt: str,
@@ -186,8 +197,7 @@ def generate_single_response(
         from google.genai import types
 
         config_kwargs: Dict[str, Any] = {"temperature": float(temperature)}
-        if system_instruction:
-            config_kwargs["system_instruction"] = system_instruction
+        config_kwargs["system_instruction"] = ensure_identity_instruction(system_instruction)
         if max_output_tokens:
             config_kwargs["max_output_tokens"] = int(max_output_tokens)
 
@@ -259,8 +269,7 @@ def generate_chat_response(
             )
 
         config_kwargs: Dict[str, Any] = {"temperature": float(temperature)}
-        if system_instruction:
-            config_kwargs["system_instruction"] = system_instruction
+        config_kwargs["system_instruction"] = ensure_identity_instruction(system_instruction)
 
         config = types.GenerateContentConfig(**config_kwargs)
 

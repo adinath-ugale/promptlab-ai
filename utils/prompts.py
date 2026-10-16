@@ -130,15 +130,22 @@ def validate_input_text(text: Optional[str], min_length: int = 1, max_length: in
     return True, None
 
 
+from .identity import get_identity_system_instruction
+
+
 # ---------------------------------------------------------------------------
 # Prompt Building Functions
 # ---------------------------------------------------------------------------
 def get_system_instruction(task: NLPTask, strategy: PromptStrategy) -> str:
-    """Retrieve the base system instruction or role persona based on strategy."""
+    """Retrieve the base system instruction or role persona based on strategy combined with persistent owner identity."""
     if strategy == PromptStrategy.ROLE_PROMPT:
         persona = ROLE_PERSONAS.get(task, SYSTEM_INSTRUCTIONS.get(task, ""))
-        return f"{persona}\nAdhere strictly to factual grounding and answer truthfully."
-    return SYSTEM_INSTRUCTIONS.get(task, "You are a helpful and accurate AI assistant.")
+        base = f"{persona}\nAdhere strictly to factual grounding and answer truthfully."
+    else:
+        base = SYSTEM_INSTRUCTIONS.get(task, "You are a helpful and accurate AI assistant.")
+
+    identity_inst = get_identity_system_instruction()
+    return f"{base}\n\n{identity_inst}"
 
 
 def build_prompt(

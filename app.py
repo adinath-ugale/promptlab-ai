@@ -21,6 +21,13 @@ from utils.prompts import (
     validate_input_text,
     SYSTEM_INSTRUCTIONS,
 )
+from utils.identity import (
+    handle_owner_question,
+    OWNER_NAME,
+    PROJECT_NAME,
+    DEVELOPER_ROLE,
+    TECHNOLOGY_STACK,
+)
 from utils.gemini_client import (
     get_gemini_client,
     get_api_key,
@@ -621,6 +628,14 @@ if st.session_state.active_view == "chat":
             unsafe_allow_html=True,
         )
 
+        # -------------------------------------------------------------------
+        # Deterministic Owner & Developer Question Handler
+        # -------------------------------------------------------------------
+        is_owner_q, owner_reply = handle_owner_question(user_query)
+        if is_owner_q and owner_reply:
+            add_chat_message("assistant", owner_reply, latency=5.0, model="PromptLab Identity Core")
+            st.rerun()
+
         client = resolve_client()
         if client:
             sys_inst, formatted_prompt = build_prompt(
@@ -639,7 +654,13 @@ if st.session_state.active_view == "chat":
                 )
 
             if err_msg:
-                st.error(err_msg)
+                # Fallback: if Gemini fails, verify if query has owner intent
+                handled_fallback, fallback_resp = handle_owner_question(user_query)
+                if handled_fallback and fallback_resp:
+                    add_chat_message("assistant", fallback_resp, latency=lat, model="PromptLab Identity Core")
+                    st.rerun()
+                else:
+                    st.error(err_msg)
             elif reply:
                 add_chat_message("assistant", reply, latency=lat, model=st.session_state.selected_model)
                 st.rerun()
@@ -1010,13 +1031,15 @@ elif st.session_state.active_view == "settings_theme":
 elif st.session_state.active_view == "help_project":
     st.markdown("## 📌 **Project Information**")
     st.markdown(
-        """
-        ### PromptLab AI — Chatbot using LLM with Prompt Engineering
+        f"""
+        ### {PROJECT_NAME}
+        - **Creator & Developer:** **{OWNER_NAME}** ({DEVELOPER_ROLE})
         - **Course:** NLP Practical Project
         - **Platform:** Streamlit Web Application
+        - **Technologies:** {TECHNOLOGY_STACK}
         - **LLM Engine:** Google Gemini API (`google-genai` SDK)
         - **Core Capabilities:**
-          1. Multi-turn Question Answering with uncertainty acknowledgment
+          1. Multi-turn Question Answering with uncertainty acknowledgment & owner identity awareness
           2. Factual Text Summarization (Short, Medium, Detailed)
           3. Sentiment Classification (Positive, Negative, Neutral)
           4. Response Quality Score (RQS) mathematical evaluation
@@ -1034,6 +1057,7 @@ elif st.session_state.active_view == "help_how_to":
         1. **Start a Conversation**:
            - Click **➕ New Chat** in the left sidebar anytime to start fresh.
            - Type your question in the bottom message composer and press Enter.
+           - Ask in English, Marathi (मराठी), Hindi (हिंदी), or Romanized Marathi/Hinglish.
         2. **Use Specialized Tools**:
            - Expand **🔬 Prompt Engineering Lab** in the sidebar.
            - Open **Text Summarization** to condense articles with compression statistics.
@@ -1051,13 +1075,13 @@ elif st.session_state.active_view == "help_how_to":
 elif st.session_state.active_view == "help_viva":
     st.markdown("## 🎓 **Viva Defense Questions & Answers**")
     st.markdown(
-        """
+        f"""
         **Q1: Why choose Prompt Engineering instead of Fine-Tuning?**  
         *Answer:* Fine-tuning modifies neural network weights, requiring high computational resources (GPUs) and large domain-specific datasets. Prompt engineering steers foundation models via in-context learning with zero weight modification and zero training latency.
 
         **Q2: What is the mathematical definition of RQS?**  
         *Answer:* RQS (Response Quality Score) is the arithmetic mean of four normalized dimensions:  
-        $$\\text{RQS} = \\frac{\\text{Accuracy} + \\text{Relevance} + \\text{Consistency} + \\text{Fluency}}{4}$$  
+        $$\\text{{RQS}} = \\frac{{\\text{{Accuracy}} + \\text{{Relevance}} + \\text{{Consistency}} + \\text{{Fluency}}}}{{4}}$$  
         where each dimension is scored on an interval scale of $1.0$ to $5.0$.
 
         **Q3: How does Few-Shot prompting improve stability over Zero-Shot?**  
@@ -1065,5 +1089,8 @@ elif st.session_state.active_view == "help_viva":
 
         **Q4: How does Temperature affect LLM decoding?**  
         *Answer:* Temperature scales the logits before the softmax operation ($P(w_i) \\propto \\exp(z_i / T)$). At $T=0.0$, decoding is greedy and deterministic. At higher temperatures ($T \\ge 0.7$), token sampling diversity increases.
+
+        **Q5: Who developed PromptLab AI and what technologies are utilized?**  
+        *Answer:* PromptLab AI was created and developed by **{OWNER_NAME}** for the NLP Practical Project titled *"Chatbot using LLM with Prompt Engineering"*. It is powered by Python, Streamlit, Google Gemini API, and core prompt engineering strategies (Zero-Shot, Few-Shot, Role Prompting, and Chain-of-Thought).
         """
     )

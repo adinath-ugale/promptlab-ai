@@ -26,6 +26,17 @@ from .evaluation import (
     export_evaluations_to_csv,
     RQSResult,
 )
+from .identity import (
+    OWNER_NAME,
+    PROJECT_NAME,
+    PROJECT_SHORT_NAME,
+    DEVELOPER_ROLE,
+    TECHNOLOGY_STACK,
+    get_identity_system_instruction,
+    detect_language,
+    is_owner_question,
+    handle_owner_question,
+)
 from .history import (
     init_session_state,
     add_chat_message,
@@ -58,6 +69,15 @@ __all__ = [
     "records_to_dataframe",
     "export_evaluations_to_csv",
     "RQSResult",
+    "OWNER_NAME",
+    "PROJECT_NAME",
+    "PROJECT_SHORT_NAME",
+    "DEVELOPER_ROLE",
+    "TECHNOLOGY_STACK",
+    "get_identity_system_instruction",
+    "detect_language",
+    "is_owner_question",
+    "handle_owner_question",
     "init_session_state",
     "add_chat_message",
     "clear_chat_history",
