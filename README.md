@@ -373,49 +373,7 @@ pytest -v
 
 ---
 
-## 13. Deployment Guide (GitHub + Streamlit Cloud)
 
-Follow these steps to deploy **PromptLab AI** as a live, publicly accessible website for your college presentation:
-
-### Step 1: Initialize Git Repository
-Inside the project root:
-```powershell
-git init
-git add .
-git commit -m "feat: complete PromptLab AI LLM Chatbot with prompt engineering & RQS"
-```
-*(Verify `.gitignore` is active so that `.env` and `.venv/` are never staged).*
-
-### Step 2: Push to GitHub
-1. Log in to your [GitHub account](https://github.com/).
-2. Create a new public repository named `promptlab-ai`.
-3. Link and push your local commits:
-```powershell
-git branch -M main
-git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/promptlab-ai.git
-git push -u origin main
-```
-
-### Step 3: Deploy to Streamlit Community Cloud
-1. Visit [share.streamlit.io](https://share.streamlit.io/) and log in with GitHub.
-2. Click **"New app"**.
-3. Select your repository: `<YOUR_GITHUB_USERNAME>/promptlab-ai`.
-4. Set the **Main file path** to: `app.py`.
-5. Expand **Advanced settings...** and open the **Secrets** tab.
-6. Enter your Gemini credentials:
-```toml
-GEMINI_API_KEY = "your_actual_gemini_api_key_here"
-GEMINI_MODEL = "gemini-2.5-flash"
-```
-7. Click **"Deploy!"**.
-8. Within 1–2 minutes, your web application will be live at a public URL (e.g., `https://promptlab-ai.streamlit.app`).
-
-### Step 4: Verify Live Deployment
-- Open the public URL in your smartphone or presentation laptop.
-- Check the left sidebar: click **"Test Connection"** to verify live Gemini ping latency.
-- Run a sample query in **AI Chat** or **Question Answering**.
-
----
 
 ## 14. Limitations & Future Scope
 
