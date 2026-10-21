@@ -389,24 +389,7 @@ pytest -v
 
 ---
 
-## 15. College Viva & Presentation Defense Guide
 
-### Top Viva Questions & Model Answers
-
-**Q1: What is the main objective of this project?**  
-*Answer:* The objective is to construct an operational, full-stack NLP web application that applies foundational prompt engineering paradigms (Zero-Shot, Few-Shot, Role Prompting, CoT) to Large Language Models (Google Gemini), benchmarks outputs through a novel mathematical framework (RQS), and offers a user-friendly laboratory for comparative analysis.
-
-**Q2: What is the difference between extractive and abstractive summarization? Which one does Gemini perform?**  
-*Answer:* Extractive summarization extracts sentences directly verbatim from the source text. Abstractive summarization understands the semantic concepts and generates new sentences from scratch. Gemini performs state-of-the-art *abstractive summarization*, which we guide with length constraints and factual grounding instructions.
-
-**Q3: How does Few-Shot prompting work under the hood?**  
-*Answer:* LLMs are next-token predictors. When we provide 2–3 exemplar pairs (`Input: ... -> Output: ...`) inside the prompt context, the self-attention mechanism attends to these patterns, establishing high attention weights for similar syntactic structures, formatting tags, and semantic categories.
-
-**Q4: How did you calculate RQS?**  
-*Answer:* RQS (Response Quality Score) is calculated as $RQS = \frac{\text{Accuracy} + \text{Relevance} + \text{Consistency} + \text{Fluency}}{4}$, where each metric is scored from $1.0$ to $5.0$. It provides a single, balanced metric capturing both correctness and linguistic expression.
-
-**Q5: Why did you use `google-genai` instead of the legacy `google-generativeai`?**  
-*Answer:* `google-genai` is Google's new, unified official Python SDK supporting the latest Gemini 2.0 and 2.5 foundation models, unified configuration schemas (`GenerateContentConfig`), and enhanced stability.
 
 ---
 
