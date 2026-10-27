@@ -406,7 +406,7 @@ pytest -v
 *Answer:* RQS (Response Quality Score) is calculated as $RQS = \frac{\text{Accuracy} + \text{Relevance} + \text{Consistency} + \text{Fluency}}{4}$, where each metric is scored from $1.0$ to $5.0$. It provides a single, balanced metric capturing both correctness and linguistic expression.
 
 **Q5: Why did you use `google-genai` instead of the legacy `google-generativeai`?**  
-*Answer:* `google-genai` is Google's new, unified official Python SDK supporting the latest Gemini 2.0 and 2.5 foundation models, unified configuration schemas (`GenerateContentConfig`),
+*Answer:* `google-genai` is Google's new, unified official Python SDK supporting the latest Gemini 2.0 and 2.5 foundation models, unified configuration schemas 
 
 ---
 
