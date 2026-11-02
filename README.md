@@ -403,8 +403,7 @@ pytest -v
 *Answer:* LLMs are next-token predictors. When we provide 2–3 exemplar pairs (`Input: ... -> Output: ...`) inside the prompt context, the self-attention mechanism attends to these patterns, establishing high attention weights for similar syntactic structures, formatting tags, and semantic categories.
 
 **Q4: How did you calculate RQS?**  
-*Answer:* RQS (Response Quality Score) is calculated as $RQS = \frac{\text{Accuracy} + \text{Relevance} + \text{Consistency} + \text{Fluency}}{4}$, where each metric is scored from $1.0$ to $5.0$. It provides a single, balanced metric capturing both correctness and linguistic expression.
-
+*Answer:* RQS (Response Quality Score) is calculated as $RQS = \frac{\text{Accuracy} + \text{Relevance} + \text{Consistency} + \text{Fluency}}{4}$, where each 
 
 ---
 
