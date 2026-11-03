@@ -402,9 +402,6 @@ pytest -v
 **Q3: How does Few-Shot prompting work under the hood?**  
 *Answer:* LLMs are next-token predictors. When we provide 2–3 exemplar pairs (`Input: ... -> Output: ...`) inside the prompt context, the self-attention mechanism attends to these patterns, establishing high attention weights for similar syntactic structures, formatting tags, and semantic categories.
 
-**Q4: How did you calculate RQS?**  
-*Answer:* RQS (Response Quality Score) is calculated as $RQS = \frac{\text{Accuracy} + \text{Relevance} + \text{Consistency} + \text{Fluency}}{4}$, where each 
 
----
 
 *PromptLab AI — NLP Practical Project | Developed with Python, Streamlit, and Google Gemini API.*
