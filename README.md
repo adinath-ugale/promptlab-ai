@@ -400,8 +400,7 @@ pytest -v
 *Answer:* Extractive summarization extracts sentences directly verbatim from the source text. Abstractive summarization understands the semantic concepts and generates new sentences from scratch. Gemini performs state-of-the-art *abstractive summarization*, which we guide with length constraints and factual grounding instructions.
 
 **Q3: How does Few-Shot prompting work under the hood?**  
-*Answer:* LLMs are next-token predictors. When we provide 2–3 exemplar pairs (`Input: ... -> Output: ...`) inside the prompt context, the self-attention mechanism attends to these patterns, establishing high attention weights for similar syntactic structures, formatting tags, and semantic categories.
-
+*Answer:* LLMs are next-token predictors. When we provide 2–3 exemplar pairs (`Input: ... -> Output: ...`) inside the prompt context, the self-attention mechanism 
 
 
 *PromptLab AI — NLP Practical Project | Developed with Python, Streamlit, and Google Gemini API.*
